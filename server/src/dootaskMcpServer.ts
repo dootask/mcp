@@ -3,6 +3,7 @@
 import { FastMCP } from 'fastmcp';
 import { z } from 'zod';
 import type { Logger } from 'pino';
+import type { IncomingMessage } from 'node:http';
 import { DooTaskToolsClient, RequestResult } from './dootaskClient';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -17,6 +18,7 @@ export class DooTaskMcpServer {
     this.mcp = new FastMCP({
       name: 'DooTask MCP Server',
       version: '0.1.0',
+      authenticate: this.authenticateRequest.bind(this),
     });
 
     this.setupTools();
@@ -55,13 +57,53 @@ export class DooTaskMcpServer {
     return this.client.request(method, path, data, token);
   }
 
+  private async authenticateRequest(request: IncomingMessage): Promise<Record<string, unknown>> {
+    const headers = this.normalizeHeaders(request.headers);
+
+    this.logger.debug(
+      {
+        headerPreview: headers ? this.previewHeaders(headers) : undefined,
+        url: request.url,
+      },
+      'Authenticating incoming HTTP request',
+    );
+
+    if (!headers) {
+      throw new Error('Authorization header missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>".');
+    }
+
+    const token = this.findAuthorization(headers);
+    if (!token) {
+      throw new Error('Authorization header missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>".');
+    }
+
+    return {
+      headers,
+      token,
+    };
+  }
+
   private extractToken(context: any): string | undefined {
+    const sessionToken = this.readSessionToken(context?.session);
     const candidates = [
-      context?.metadata?.headers,
-      context?.session?.metadata?.headers,
-      context?.headers,
-      context?.request?.headers,
+      this.normalizeHeaders(context?.metadata?.headers),
+      this.normalizeHeaders(context?.session?.metadata?.headers),
+      this.normalizeHeaders(context?.headers),
+      this.normalizeHeaders(context?.request?.headers),
+      this.normalizeHeaders(context?.session?.headers),
     ].filter(Boolean) as Record<string, string>[];
+
+    this.logger.debug(
+      {
+        sessionToken: sessionToken ? this.previewAuthorizationValue(sessionToken) : undefined,
+        headerSources: candidates.map((headers) => this.previewHeaders(headers)),
+      },
+      'Inspecting incoming headers for authorization token',
+    );
+
+    if (sessionToken) {
+      return sessionToken;
+    }
 
     for (const headers of candidates) {
       const header = this.findAuthorization(headers);
@@ -90,6 +132,104 @@ export class DooTaskMcpServer {
     }
 
     return value.trim();
+  }
+
+  private readSessionToken(session: unknown): string | undefined {
+    if (!session || typeof session !== 'object') {
+      return undefined;
+    }
+
+    const record = session as Record<string, unknown>;
+    const directToken = record.token;
+    if (typeof directToken === 'string' && directToken.trim()) {
+      return directToken.trim();
+    }
+
+    const headers = this.normalizeHeaders(record.headers);
+    if (headers) {
+      return this.findAuthorization(headers);
+    }
+
+    return undefined;
+  }
+
+  private previewHeaders(headers: Record<string, string>): Record<string, string> {
+    const preview: Record<string, string> = {};
+    for (const [key, value] of Object.entries(headers)) {
+      const normalizedKey = key.toLowerCase();
+      preview[normalizedKey] =
+        normalizedKey === 'authorization' || normalizedKey === 'token'
+          ? this.previewAuthorizationValue(value)
+          : value;
+    }
+    return preview;
+  }
+
+  private previewAuthorizationValue(rawValue: string): string {
+    const value = rawValue.trim();
+    if (!value) {
+      return value;
+    }
+
+    if (value.toLowerCase().startsWith('bearer ')) {
+      const token = value.slice('Bearer '.length).trim();
+      return `Bearer ${this.compactToken(token)}`;
+    }
+
+    return this.compactToken(value);
+  }
+
+  private compactToken(token: string): string {
+    if (token.length <= 12) {
+      return token;
+    }
+
+    const prefix = token.slice(0, 6);
+    const suffix = token.slice(-4);
+    return `${prefix}...${suffix}`;
+  }
+
+  private normalizeHeaders(headers: unknown): Record<string, string> | undefined {
+    if (!headers || typeof headers !== 'object') {
+      return undefined;
+    }
+
+    const asIterable = headers as { forEach?: unknown };
+    if (typeof asIterable.forEach === 'function') {
+      const result: Record<string, string> = {};
+      (asIterable.forEach as (callback: (value: unknown, key: string) => void) => void)((value, key) => {
+        if (typeof value === 'string' && value.trim()) {
+          result[key] = value;
+        }
+      });
+      return Object.keys(result).length > 0 ? result : undefined;
+    }
+
+    const result: Record<string, string> = {};
+    for (const [key, rawValue] of Object.entries(headers as Record<string, unknown>)) {
+      if (rawValue === undefined || rawValue === null) {
+        continue;
+      }
+
+      if (Array.isArray(rawValue)) {
+        const first = rawValue.find((item) => typeof item === 'string' && item.trim());
+        if (typeof first === 'string') {
+          result[key] = first;
+        }
+        continue;
+      }
+
+      if (typeof rawValue === 'string' && rawValue.trim()) {
+        result[key] = rawValue;
+        continue;
+      }
+
+      if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+        result[key] = String(rawValue);
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
   }
 
   private setupTools(): void {
