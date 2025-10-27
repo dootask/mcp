@@ -3,5 +3,3 @@ dist
 .DS_Store
 *.log
 dootask-plugin.tar.gz
-.env
-.env.local

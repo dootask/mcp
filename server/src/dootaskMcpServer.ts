@@ -27,6 +27,7 @@ export class DooTaskMcpServer {
       transportType: 'httpStream',
       httpStream: {
         port,
+        host: '0.0.0.0',
       },
     });
   }

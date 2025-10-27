@@ -3,5 +3,5 @@ menu_items:
     label:
       en: MCP Usage Guide
       zh: MCP 使用指南
-    url: "apps/mcp_server?theme={system_theme}"
+    url: "apps/mcp_server/?theme={system_theme}"
     url_type: iframe

@@ -25,7 +25,5 @@ COPY --from=build /app/server/dist ./dist
 COPY --from=build /app/server/package.json ./package.json
 COPY --from=build /app/server/node_modules ./node_modules
 COPY --from=build /app/guide/dist ./guide/dist
-COPY server/.env.example ./
-EXPOSE 7000
-EXPOSE 7001
+
 CMD ["node", "dist/index.js"]
