@@ -1,0 +1,33 @@
+{
+  "name": "dootask-mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone DooTask MCP server that authenticates with DooTask via token using dootask-tools API contracts.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "prebuild": "npm run build:guide",
+    "build:guide": "npm run build --prefix ../guide",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@dootask/tools": "^1.2.1",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "fastmcp": "^3.21.0",
+    "pino": "^8.17.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
