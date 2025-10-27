@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { appReady, getUserToken, getUserInfo } from '@dootask/tools';
+import {
+  appReady,
+  getUserToken,
+  getUserInfo,
+  requestAPI,
+} from '@dootask/tools';
 import { CopyButton } from './components/CopyButton';
 
 type LoadState = 'loading' | 'ready' | 'error';
@@ -7,6 +12,7 @@ type LoadState = 'loading' | 'ready' | 'error';
 interface GuideData {
   token: string;
   userLabel: string;
+  tokenExpireAt: string | null;
 }
 
 export default function App() {
@@ -31,9 +37,10 @@ export default function App() {
     const load = async () => {
       try {
         await appReady();
-        const [token, user] = await Promise.all([
+        const [token, user, expireInfo] = await Promise.all([
           getUserToken(),
           getUserInfo().catch(() => null),
+          requestAPI({ url: 'users/token/expire' }).catch(() => null),
         ]);
 
         if (!mounted) return;
@@ -43,6 +50,7 @@ export default function App() {
           userLabel: user
             ? `${user.nickname || user.username || user.userid}`
             : '当前用户',
+          tokenExpireAt: expireInfo?.data?.expired_at ?? null,
         });
         setState('ready');
       } catch (error) {
@@ -210,6 +218,7 @@ export default function App() {
         </div>
         <p className="note">
           Token 与当前账号权限一致，请妥善保管。当前账号：{data?.userLabel || '未知用户'}
+          ，Token 过期时间：{data?.tokenExpireAt || '未知'}。
         </p>
         {state === 'error' && <p className="status error">{errorMessage}</p>}
       </section>
