@@ -1,6 +1,6 @@
 name:
-  en: DooTask MCP Server
-  zh: DooTask MCP 服务
+  en: MCP Server
+  zh: MCP 服务
 description:
   en: Expose the DooTask MCP toolset as a standalone service that works with Claude and other MCP-compatible assistants.
   zh: 将 DooTask MCP 工具集以独立服务形式对外提供，可被 Claude 等支持 MCP 协议的助手使用。
