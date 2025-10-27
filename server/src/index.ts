@@ -6,7 +6,7 @@ import { createLogger } from './logger';
 import { DooTaskToolsClient } from './dootaskClient';
 import { DooTaskMcpServer } from './dootaskMcpServer';
 
-const DEFAULT_FILE = 'index.html';
+const DEFAULT_GUIDE_FILE = 'index.html';
 
 const GUIDE_PATH_CANDIDATES = [
   path.resolve(__dirname, '../guide/dist'),
@@ -15,7 +15,7 @@ const GUIDE_PATH_CANDIDATES = [
   path.resolve(process.cwd(), './guide/dist'),
 ];
 
-const contentTypeMap: Record<string, string> = {
+const CONTENT_TYPE_MAP: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -30,7 +30,7 @@ const contentTypeMap: Record<string, string> = {
 
 function resolveContentType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  return contentTypeMap[ext] || 'application/octet-stream';
+  return CONTENT_TYPE_MAP[ext] || 'application/octet-stream';
 }
 
 function resolveGuideRoot(): string | null {
@@ -39,31 +39,28 @@ function resolveGuideRoot(): string | null {
       return candidate;
     }
   }
-
   return null;
 }
 
-function findStaticFile(requestPath: string): string | null {
+function findGuideAsset(requestPath: string): string | null {
   const guideRoot = resolveGuideRoot();
-  if (!guideRoot) {
-    return null;
-  }
+  if (!guideRoot) return null;
 
   const relativePath = requestPath === '/' || requestPath === ''
-    ? DEFAULT_FILE
+    ? DEFAULT_GUIDE_FILE
     : requestPath.replace(/^\/+/, '');
-  const candidatePath = path.join(guideRoot, relativePath);
+  const resolvedPath = path.join(guideRoot, relativePath);
 
-  if (!candidatePath.startsWith(guideRoot)) {
+  if (!resolvedPath.startsWith(guideRoot)) {
     return null;
   }
 
-  if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
-    return candidatePath;
+  if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
+    return resolvedPath;
   }
 
-  const fallbackPath = path.join(guideRoot, DEFAULT_FILE);
-  return fs.existsSync(fallbackPath) ? fallbackPath : null;
+  const fallback = path.join(guideRoot, DEFAULT_GUIDE_FILE);
+  return fs.existsSync(fallback) ? fallback : null;
 }
 
 async function bootstrap(): Promise<void> {
@@ -73,60 +70,56 @@ async function bootstrap(): Promise<void> {
   logger.info({
     baseUrl: config.baseUrl,
     port: config.port,
+    healthPort: config.healthPort,
     timeout: config.requestTimeout,
   }, 'Starting DooTask MCP server');
 
   const client = new DooTaskToolsClient(config.baseUrl, config.requestTimeout, logger);
-  const server = new DooTaskMcpServer(client, logger);
-  const webServer = http.createServer((req, res) => {
+  const mcpServer = new DooTaskMcpServer(client, logger);
+
+  const guideServer = http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const pathname = url.pathname;
 
-    if (pathname === '/healthz') {
+    if (pathname === '/healthz' || pathname === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
       return;
     }
 
-    const filePath = findStaticFile(pathname);
-
-    if (!filePath) {
-      logger.warn({ path: pathname, candidates: GUIDE_PATH_CANDIDATES }, 'Guide assets not found');
+    const assetPath = findGuideAsset(pathname);
+    if (!assetPath) {
+      logger.warn({ path: pathname }, 'Guide asset not found');
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Guide not available. Please build the front-end assets.');
+      res.end('Guide asset not found. Please build the guide application.');
       return;
     }
 
-    try {
-      const stream = fs.createReadStream(filePath);
-      res.writeHead(200, { 'Content-Type': resolveContentType(filePath) });
-      stream.pipe(res);
-      stream.on('error', (error) => {
-        logger.error({ err: error, path: filePath }, 'Failed to read guide asset');
-        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('Failed to load guide asset.');
-      });
-    } catch (error) {
-      logger.error({ err: error, path: filePath }, 'Unexpected error serving guide asset');
+    const stream = fs.createReadStream(assetPath);
+    res.writeHead(200, { 'Content-Type': resolveContentType(assetPath) });
+    stream.pipe(res);
+    stream.on('error', (error) => {
+      logger.error({ err: error, path: assetPath }, 'Failed to read guide asset');
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Failed to load guide asset.');
-    }
+    });
   });
 
-  await server.start(config.port);
+  await mcpServer.start(config.port);
   logger.info(`MCP server is listening on http://0.0.0.0:${config.port}/mcp`);
-  webServer.listen(config.healthPort, '0.0.0.0', () => {
-    logger.info(`Guide page ready at http://0.0.0.0:${config.healthPort}/ (health: /healthz)`);
+
+  guideServer.listen(config.healthPort, '0.0.0.0', () => {
+    logger.info(`Guide server ready at http://0.0.0.0:${config.healthPort}/`);
   });
 
   const shutdown = async (signal: NodeJS.Signals) => {
-    logger.info({ signal }, 'Received shutdown signal, stopping MCP server');
+    logger.info({ signal }, 'Received shutdown signal');
     try {
-      webServer.close();
-      await server.stop();
-      logger.info('MCP server stopped');
+      guideServer.close();
+      await mcpServer.stop();
+      logger.info('Servers stopped gracefully');
     } catch (error) {
-      logger.error({ err: error }, 'Failed to stop MCP server gracefully');
+      logger.error({ err: error }, 'Failed to stop servers gracefully');
     } finally {
       process.exit(0);
     }
@@ -138,6 +131,6 @@ async function bootstrap(): Promise<void> {
 
 bootstrap().catch((error) => {
   // eslint-disable-next-line no-console
-  console.error('Failed to start DooTask MCP server:', error);
+  console.error('Failed to start MCP server:', error);
   process.exit(1);
 });

@@ -11,36 +11,22 @@ export interface AppConfig {
 }
 
 const DEFAULT_PORT = 7000;
-const DEFAULT_HEALTH_OFFSET = 1;
+const DEFAULT_HEALTH_PORT = 7001;
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_BASE_URL = 'http://nginx';
-
-function parsePort(value: string | undefined, fallback: number): number {
-  if (!value) return fallback;
-  const port = Number.parseInt(value, 10);
-  return Number.isFinite(port) && port > 0 ? port : fallback;
-}
-
-function parseTimeout(value: string | undefined, fallback: number): number {
-  if (!value) return fallback;
-  const timeout = Number.parseInt(value, 10);
-  return Number.isFinite(timeout) && timeout > 0 ? timeout : fallback;
-}
+const DEFAULT_LOG_LEVEL = 'info';
 
 export function loadConfig(): AppConfig {
-  const baseUrl = process.env.API_BASE_URL?.trim() || DEFAULT_BASE_URL;
-  const rawLogLevel = (process.env.LOG_LEVEL || 'info').toLowerCase();
+  const baseUrl = DEFAULT_BASE_URL;
+  const rawLogLevel = DEFAULT_LOG_LEVEL;
   const allowedLogLevels = new Set(['debug', 'info', 'warn', 'error']);
   const logLevel = (allowedLogLevels.has(rawLogLevel) ? rawLogLevel : 'info') as AppConfig['logLevel'];
 
-  const port = parsePort(process.env.MCP_PORT, DEFAULT_PORT);
-  const healthPort = parsePort(process.env.HEALTH_PORT, port + DEFAULT_HEALTH_OFFSET);
-
   return {
     baseUrl: baseUrl.replace(/\/+$/, ''),
-    port,
-    healthPort,
+    port: DEFAULT_PORT,
+    healthPort: DEFAULT_HEALTH_PORT,
+    requestTimeout: DEFAULT_TIMEOUT,
     logLevel,
-    requestTimeout: parseTimeout(process.env.REQUEST_TIMEOUT, DEFAULT_TIMEOUT),
   };
 }

@@ -28,19 +28,19 @@ current user’s DooTask token through the `Authorization: Bearer <token>` heade
    - `API_BASE_URL`：DooTask 实例的接口地址（默认 `http://nginx`，由平台内部解析）
    - `MCP_PORT` / `HEALTH_PORT`：本地暴露端口（默认 7000/7001）
    - `REQUEST_TIMEOUT`：调用 DooTask API 的超时时间（毫秒）
-3. Build the onboarding guide once（生成静态资源供服务端托管）:
+3. Build the onboarding guide（生成静态资源，容器启动时会监听 `HEALTH_PORT` 提供说明页）:
    ```bash
    npm run build --prefix guide
    ```
-4. Start the MCP server in watch mode:
+4. Start the MCP server in watch mode（默认分别监听 7000/7001）:
    ```bash
    cd server
    npm run dev
    ```
 5. Use an MCP-compatible client (e.g. `fastmcp` CLI) to connect to
    `http://localhost:7000/mcp`，客户端请求需携带
-   `Authorization: Bearer <DooTaskToken>`。指导页面位于
-   `http://localhost:7001/`，健康检查为 `http://localhost:7001/healthz`。
+   `Authorization: Bearer <DooTaskToken>`。本地开发时说明页位于
+   `http://localhost:7001/`（健康检查为 `/healthz`）。在插件部署后，两者均通过平台 Nginx 的同一入口对外提供。
 
 ## Packaging for DooTask
 
