@@ -77,6 +77,7 @@ p {
 .info-value {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
 
@@ -138,6 +139,7 @@ pre {
 
 code {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
 }
 
 .note {

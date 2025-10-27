@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MCP 使用指南</title>
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const themeParam = params.get('theme');
+        const resolvedTheme = themeParam === 'dark' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', resolvedTheme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
