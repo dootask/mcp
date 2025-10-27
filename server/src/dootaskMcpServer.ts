@@ -521,6 +521,18 @@ export class DooTaskMcpServer {
           this.logger.warn({ err: error }, 'Failed to get task content');
         }
 
+        const taskUsers = Array.isArray(task?.taskUser) ? task.taskUser : undefined;
+        const owners = taskUsers
+          ? taskUsers.filter((user: any) => user.owner === 1)
+          : Array.isArray(task?.owner)
+            ? task.owner
+            : [];
+        const assistants = taskUsers
+          ? taskUsers.filter((user: any) => user.owner === 0)
+          : Array.isArray(task?.assist)
+            ? task.assist
+            : [];
+
         const taskDetail = {
           id: task.id,
           name: task.name,
@@ -534,19 +546,22 @@ export class DooTaskMcpServer {
           column_id: task.column_id,
           column_name: task.column_name,
           parent_id: task.parent_id,
-          owner: task.owner?.map((user: any) => ({
+          start_at: task.start_at || '无开始时间',
+          end_at: task.end_at || '无截止时间',
+          flow_item_id: task.flow_item_id,
+          flow_item_name: task.flow_item_name,
+          visibility: task.visibility === 1 ? '公开' : '指定人员',
+          owners: owners.map((user: any) => ({
             userid: user.userid,
             username: user.username || user.nickname || `用户${user.userid}`,
-            avatar: user.avatar || '',
-          })) || [],
-          assist: task.assist?.map((user: any) => ({
+          })),
+          assistants: assistants.map((user: any) => ({
             userid: user.userid,
             username: user.username || user.nickname || `用户${user.userid}`,
-            avatar: user.avatar || '',
-          })) || [],
-          tags: task.tags || [],
-          start_at: task.start_at,
-          end_at: task.end_at,
+          })),
+          tags: Array.isArray(task.taskTag)
+            ? task.taskTag.map((tag: any) => tag.name)
+            : task.tags || [],
           created_at: task.created_at,
           updated_at: task.updated_at,
         };
@@ -563,27 +578,33 @@ export class DooTaskMcpServer {
     // 完成任务
     this.mcp.addTool({
       name: 'complete_task',
-      description: '标记任务为已完成。',
+      description: '快速标记任务完成（自动使用当前时间）。如需指定完成时间或取消完成，请使用 update_task。注意:主任务必须在所有子任务完成后才能标记完成。',
       parameters: z.object({
         task_id: z.number()
-          .describe('任务ID'),
+          .describe('要标记完成的任务ID'),
       }),
       execute: async (params, context) => {
-        const result = await this.request('GET', 'project/task/complete', {
+        const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+        const result = await this.request('POST', 'project/task/update', {
           task_id: params.task_id,
+          complete_at: now,
         }, context);
 
         if (result.error) {
           throw new Error(result.error);
         }
 
+        const data = result.data as any;
+
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: `任务 ${params.task_id} 已标记为完成`,
-              data: result.data,
+              message: '任务已标记为完成',
+              task_id: params.task_id,
+              complete_at: data?.complete_at || now,
             }, null, 2),
           }],
         };

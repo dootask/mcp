@@ -74,6 +74,7 @@ export default function App() {
           DooTask: {
             url: mcpUrl,
             description: 'DooTask MCP Server',
+            type: 'streamable-http',
             headers: {
               Authorization: `Bearer ${data.token}`,
             },
@@ -94,6 +95,96 @@ export default function App() {
       `  ${mcpUrl}`,
     ].join('\n');
   }, [data, mcpUrl]);
+
+  const toolExamples = useMemo(
+    () => [
+      {
+        title: '用户管理',
+        items: [
+          {
+            tool: 'get_users_basic',
+            prompt: '请根据用户ID 123 和 456 查询他们的昵称和邮箱。',
+          },
+          {
+            tool: 'search_user',
+            prompt: '搜索“设计”项目里的张三，返回他的在线状态。',
+          },
+        ],
+      },
+      {
+        title: '任务管理',
+        items: [
+          {
+            tool: 'list_tasks',
+            prompt: '列出我本周未完成的任务，并显示所属项目。',
+          },
+          {
+            tool: 'get_task',
+            prompt: '查看任务 1001 的详情和协作人员。',
+          },
+          {
+            tool: 'create_task',
+            prompt: '在项目 8 中创建名为“撰写周报”的任务，负责人是用户 123。',
+          },
+          {
+            tool: 'update_task',
+            prompt: '把任务 120 的截止时间改到下周五，并指派协助人 456。',
+          },
+          {
+            tool: 'complete_task',
+            prompt: '将任务 88 标记为已完成。',
+          },
+          {
+            tool: 'create_sub_task',
+            prompt: '为主任务 300 新增子任务“准备会议材料”。',
+          },
+          {
+            tool: 'get_task_files',
+            prompt: '查看任务 77 的附件列表。',
+          },
+          {
+            tool: 'delete_task',
+            prompt: '恢复被删除的任务 66。',
+          },
+        ],
+      },
+      {
+        title: '项目管理',
+        items: [
+          {
+            tool: 'list_projects',
+            prompt: '列出所有未归档项目并显示负责人。',
+          },
+          {
+            tool: 'get_project',
+            prompt: '查看项目 5 的列配置和成员列表。',
+          },
+          {
+            tool: 'create_project',
+            prompt: '创建名为“新品发布”的项目，并初始化“规划,执行,完成”三列。',
+          },
+          {
+            tool: 'update_project',
+            prompt: '把项目 9 的描述改为“2025 年关键项目”。',
+          },
+        ],
+      },
+      {
+        title: '消息通知',
+        items: [
+          {
+            tool: 'send_message_to_user',
+            prompt: '给用户 200 发送 Markdown 消息“请查看任务 88 的最新更新”。',
+          },
+          {
+            tool: 'get_message_list',
+            prompt: '在对话 300 中搜索包含“日报”的消息。',
+          },
+        ],
+      },
+    ],
+    [],
+  );
 
   return (
     <main>
@@ -168,7 +259,27 @@ export default function App() {
       </section>
 
       <section>
-        <h2>5. 常见问题</h2>
+        <h2>5. 常用工具示例</h2>
+        <p>以下提示可直接复制到 MCP 客户端，演示每个工具的典型用法：</p>
+        <div className="examples-grid">
+          {toolExamples.map((group) => (
+            <div key={group.title} className="examples-card">
+              <h3>{group.title}</h3>
+              <ul>
+                {group.items.map((item) => (
+                  <li key={item.tool}>
+                    <span className="tool-name">{item.tool}</span>
+                    <p>{item.prompt}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2>6. 常见问题</h2>
         <ul>
           <li>若提示缺少 Authorization 头，请确认客户端已设置 <code>Authorization: Bearer {'<Token>'}</code>。</li>
           <li>Token 失效或权限不足时，可在此页面重新复制并更新客户端配置。</li>
