@@ -5,8 +5,3 @@ menu_items:
       zh: MCP 指南
     url: "apps/mcp_server/?theme={system_theme}"
     url_type: iframe
-require_version:
- version: "> 1.3.38"
- reason:
-     en: "Requires new API features"
-     zh: "需要新的API功能"
