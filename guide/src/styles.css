@@ -9,7 +9,6 @@
   --border: rgba(15, 23, 42, 0.08);
   --info-bg: rgba(37, 99, 235, 0.08);
   --code-bg: #0f172a;
-  --code-fg: #f8fafc;
 }
 
 :root[data-theme='dark'] {
@@ -21,7 +20,6 @@
   --border: rgba(148, 163, 184, 0.32);
   --info-bg: oklch(24% 0 0);
   --code-bg: oklch(23% 0 0);
-  --code-fg: oklch(93% 0 0);
 }
 
 body {
@@ -132,7 +130,6 @@ button:hover {
 }
 
 pre {
-  color: var(--code-fg);
   overflow-x: auto;
   font-size: 14px;
 }
