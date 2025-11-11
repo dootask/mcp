@@ -61,6 +61,7 @@ export class DooTaskMcpServer {
     context: any,
   ): Promise<RequestResult> {
     const token = this.extractToken(context);
+    const host = this.extractHost(context);
     if (!token) {
       this.logger.warn({ tool: path }, 'Missing Authorization token for MCP request');
       return {
@@ -68,7 +69,7 @@ export class DooTaskMcpServer {
       };
     }
 
-    return this.client.request(method, path, data, token);
+    return this.client.request(method, path, data, token, host);
   }
 
   private async authenticateRequest(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -99,18 +100,12 @@ export class DooTaskMcpServer {
 
   private extractToken(context: any): string | undefined {
     const sessionToken = this.readSessionToken(context?.session);
-    const candidates = [
-      this.normalizeHeaders(context?.metadata?.headers),
-      this.normalizeHeaders(context?.session?.metadata?.headers),
-      this.normalizeHeaders(context?.headers),
-      this.normalizeHeaders(context?.request?.headers),
-      this.normalizeHeaders(context?.session?.headers),
-    ].filter(Boolean) as Record<string, string>[];
+    const headerSources = this.gatherHeaderSources(context);
 
     this.logger.debug(
       {
         sessionToken: sessionToken ? this.previewAuthorizationValue(sessionToken) : undefined,
-        headerSources: candidates.map((headers) => this.previewHeaders(headers)),
+        headerSources: headerSources.map((headers) => this.previewHeaders(headers)),
       },
       'Inspecting incoming headers for authorization token',
     );
@@ -119,10 +114,44 @@ export class DooTaskMcpServer {
       return sessionToken;
     }
 
-    for (const headers of candidates) {
+    for (const headers of headerSources) {
       const header = this.findAuthorization(headers);
       if (header) {
         return header;
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractHost(context: any): string | undefined {
+    const directSources = [
+      context,
+      context?.metadata,
+      context?.request,
+      context?.session,
+      context?.session?.metadata,
+    ];
+
+    for (const source of directSources) {
+      const host = this.readHostRecord(source);
+      if (host) {
+        return host;
+      }
+    }
+
+    const headerSources = this.gatherHeaderSources(context);
+    this.logger.debug(
+      {
+        headerSources: headerSources.map((headers) => this.previewHeaders(headers)),
+      },
+      'Inspecting incoming headers for host',
+    );
+
+    for (const headers of headerSources) {
+      const host = this.findHostHeader(headers);
+      if (host) {
+        return host;
       }
     }
 
@@ -146,6 +175,66 @@ export class DooTaskMcpServer {
     }
 
     return value.trim();
+  }
+
+  private gatherHeaderSources(context: any): Record<string, string>[] {
+    return [
+      this.normalizeHeaders(context?.metadata?.headers),
+      this.normalizeHeaders(context?.session?.metadata?.headers),
+      this.normalizeHeaders(context?.headers),
+      this.normalizeHeaders(context?.request?.headers),
+      this.normalizeHeaders(context?.session?.headers),
+    ].filter(Boolean) as Record<string, string>[];
+  }
+
+  private readHostRecord(record: Record<string, unknown> | undefined): string | undefined {
+    if (!record || typeof record !== 'object') {
+      return undefined;
+    }
+
+    const directHost = this.extractStringValue(record['host']) ?? this.extractStringValue(record['hostname']);
+    if (directHost) {
+      return directHost;
+    }
+
+    const headers = this.normalizeHeaders(record['headers']);
+    if (headers) {
+      return this.findHostHeader(headers);
+    }
+
+    return undefined;
+  }
+
+  private extractStringValue(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  private findHostHeader(headers: Record<string, string>): string | undefined {
+    const candidates = ['host', 'x-forwarded-host', 'x-forwarded-server', 'x-original-host'];
+    for (const candidate of candidates) {
+      const value = this.findHeaderIgnoreCase(headers, candidate);
+      if (value) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
+  private findHeaderIgnoreCase(headers: Record<string, string>, key: string): string | undefined {
+    const lowerKey = key.toLowerCase();
+    for (const [headerKey, headerValue] of Object.entries(headers)) {
+      if (headerKey.toLowerCase() === lowerKey) {
+        const trimmed = headerValue.trim();
+        if (trimmed) {
+          return trimmed;
+        }
+      }
+    }
+    return undefined;
   }
 
   private readSessionToken(session: unknown): string | undefined {
@@ -1477,7 +1566,7 @@ export class DooTaskMcpServer {
       name: 'get_file_detail',
       description: '获取指定文件的详细信息，包括类型、大小、共享状态、创建者等。支持通过文件ID或分享码访问。返回的 content_url 可以配合 WebFetch 工具读取文件内容进行分析。',
       parameters: z.object({
-        file_id: z.union([z.number(), z.string()])
+        file_id: z.any()
           .describe('文件ID（数字）或分享码（字符串）'),
       }),
       execute: async (params, context) => {

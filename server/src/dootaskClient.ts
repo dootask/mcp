@@ -30,6 +30,7 @@ export class DooTaskToolsClient {
     path: string,
     params: Record<string, unknown> = {},
     token?: string,
+    host?: string,
   ): Promise<RequestResult<T>> {
     if (!token) {
       return {
@@ -43,6 +44,7 @@ export class DooTaskToolsClient {
       url,
       headers: {
         Token: token,
+        ...(host ? { Host: host } : {}),
       },
     };
 
