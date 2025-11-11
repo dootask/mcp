@@ -182,11 +182,57 @@ export default function App() {
         items: [
           {
             tool: 'send_message_to_user',
-            prompt: '给用户 200 发送 Markdown 消息“请查看任务 88 的最新更新”。',
+            prompt: '给用户 200 发送 Markdown 消息"请查看任务 88 的最新更新"。',
           },
           {
             tool: 'get_message_list',
-            prompt: '在对话 300 中搜索包含“日报”的消息。',
+            prompt: '在对话 300 中搜索包含"日报"的消息。',
+          },
+        ],
+      },
+      {
+        title: '文件管理',
+        items: [
+          {
+            tool: 'list_files',
+            prompt: '查看我的文件列表。',
+          },
+          {
+            tool: 'search_files',
+            prompt: '搜索关键词"设计稿"相关的文件，返回前 10 条。',
+          },
+          {
+            tool: 'get_file_detail',
+            prompt: '显示文件123的详细信息。',
+          },
+        ],
+      },
+      {
+        title: '工作报告',
+        items: [
+          {
+            tool: 'list_received_reports',
+            prompt: '列出我收到的所有工作报告。',
+          },
+          {
+            tool: 'get_report_detail',
+            prompt: '查看报告 456 的详细内容。',
+          },
+          {
+            tool: 'generate_report_template',
+            prompt: '生成本周的工作报告模板。',
+          },
+          {
+            tool: 'create_report',
+            prompt: '创建一份工作报告，接收人是用户 123 和 456。',
+          },
+          {
+            tool: 'list_my_reports',
+            prompt: '查看我提交的所有工作报告及阅读状态。',
+          },
+          {
+            tool: 'mark_reports_read',
+            prompt: '将报告 789 标记为已读。',
           },
         ],
       },
