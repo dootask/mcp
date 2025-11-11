@@ -292,7 +292,7 @@ export class DooTaskMcpServer {
     // 用户管理：获取用户基础信息
     this.mcp.addTool({
       name: 'get_users_basic',
-      description: '根据用户ID列表获取用户基础信息（昵称、邮箱、头像等），方便在分配任务前确认成员身份。',
+      description: '根据用户ID列表批量获取用户基础信息（昵称、邮箱、头像等）。适用于分配任务前确认成员身份，支持1-50个用户。',
       parameters: z.object({
         userids: z.array(z.number())
           .min(1)
@@ -340,7 +340,7 @@ export class DooTaskMcpServer {
     // 用户管理：搜索用户
     this.mcp.addTool({
       name: 'search_user',
-      description: '按关键词搜索或筛选用户，支持按项目/对话过滤并返回分页结果。',
+      description: '按关键词搜索用户（昵称、邮箱、拼音），支持按项目/对话范围筛选。与 get_users_basic 不同，此工具用于不知道具体用户ID时的查找场景。',
       parameters: z.object({
         keyword: z.string()
           .min(1)
@@ -447,7 +447,7 @@ export class DooTaskMcpServer {
     // 获取任务列表
     this.mcp.addTool({
       name: 'list_tasks',
-      description: '获取任务列表。可以按状态筛选(已完成/未完成)、搜索任务名称、按时间范围筛选等。',
+      description: '获取当前用户相关的任务列表（负责/协助/关注），支持按状态、项目、时间范围筛选和搜索。',
       parameters: z.object({
         status: z.enum(['all', 'completed', 'uncompleted'])
           .optional()
@@ -544,7 +544,7 @@ export class DooTaskMcpServer {
     // 获取任务详情
     this.mcp.addTool({
       name: 'get_task',
-      description: '获取指定任务的详细信息,包括任务描述、完整内容、负责人、协助人员、标签、时间等所有信息。',
+      description: '获取单个任务的完整详细信息，包括任务描述、完整内容（content）、负责人、协助人员、标签、时间等。比 list_tasks 返回更详细的信息。',
       parameters: z.object({
         task_id: z.number()
           .describe('任务ID'),
@@ -670,7 +670,7 @@ export class DooTaskMcpServer {
     // 创建任务
     this.mcp.addTool({
       name: 'create_task',
-      description: '创建新任务。需要指定项目 ID 和任务名称，其他信息可选。',
+      description: '在指定项目中创建新任务。必需参数：项目ID、任务名称。可选：负责人、协助人、开始/结束时间、看板列等。',
       parameters: z.object({
         project_id: z.number()
           .describe('所属项目ID'),
@@ -739,7 +739,7 @@ export class DooTaskMcpServer {
     // 更新任务
     this.mcp.addTool({
       name: 'update_task',
-      description: '更新任务信息。可以修改任务名称、内容、负责人、时间、状态等所有属性。',
+      description: '更新任务的任意属性（名称、内容、负责人、协助人、时间、完成状态、看板列等）。只需提供要修改的字段。',
       parameters: z.object({
         task_id: z.number()
           .describe('任务ID'),
@@ -944,7 +944,7 @@ export class DooTaskMcpServer {
     // 获取项目列表
     this.mcp.addTool({
       name: 'list_projects',
-      description: '获取项目列表。可以按归档状态筛选、搜索项目名称等。',
+      description: '获取当前用户可访问的项目列表，支持按归档状态筛选、搜索项目名称。',
       parameters: z.object({
         archived: z.enum(['no', 'yes', 'all'])
           .optional()
@@ -1005,7 +1005,7 @@ export class DooTaskMcpServer {
     // 获取项目详情
     this.mcp.addTool({
       name: 'get_project',
-      description: '获取指定项目的详细信息，包括项目的列（看板列）、成员等完整信息。',
+      description: '获取指定项目的完整详细信息，包括项目描述、所有看板列、成员列表及权限等。比 list_projects 返回更详细的信息。',
       parameters: z.object({
         project_id: z.number()
           .describe('项目ID'),
@@ -1263,7 +1263,7 @@ export class DooTaskMcpServer {
     // 获取消息列表或搜索消息
     this.mcp.addTool({
       name: 'get_message_list',
-      description: '获取指定对话的消息列表，或按关键字搜索消息位置/内容。',
+      description: '两种模式：1）获取指定对话的消息列表（需提供 dialog_id），支持按类型筛选、分页加载；2）按关键词搜索消息（提供 keyword），可在单个对话或全局搜索。',
       parameters: z.object({
         dialog_id: z.number()
           .optional()
@@ -1373,7 +1373,7 @@ export class DooTaskMcpServer {
     // 文件管理：获取文件列表
     this.mcp.addTool({
       name: 'list_files',
-      description: '获取项目文件列表，支持按父级文件夹筛选。可以浏览文件夹结构，查看所有文件和子文件夹。',
+      description: '获取用户文件列表（个人文件系统），支持按父级文件夹筛选。pid=0或不传表示获取根目录，pid>0获取指定文件夹下的内容。可以浏览文件夹结构，查看所有文件和子文件夹。',
       parameters: z.object({
         pid: z.number()
           .optional()
@@ -1422,11 +1422,11 @@ export class DooTaskMcpServer {
     // 文件管理：搜索文件
     this.mcp.addTool({
       name: 'search_files',
-      description: '按关键词搜索文件，支持搜索文件名称或ID。可以快速定位文件位置。',
+      description: '按关键词搜索用户文件系统中的文件，支持搜索文件名称、文件ID或分享链接。搜索范围包括：自己创建的文件和共享给自己的文件。',
       parameters: z.object({
         keyword: z.string()
           .min(1)
-          .describe('搜索关键词，支持文件名称或文件ID'),
+          .describe('搜索关键词，支持文件名称、文件ID或分享链接'),
         take: z.number()
           .optional()
           .describe('返回数量，默认50，最大100'),
@@ -1475,7 +1475,7 @@ export class DooTaskMcpServer {
     // 文件管理：获取文件详情
     this.mcp.addTool({
       name: 'get_file_detail',
-      description: '获取指定文件的详细信息，包括类型、大小、共享状态、创建者等。返回的 content_url 可以配合 WebFetch 工具读取文件内容进行分析。支持通过文件ID或分享码访问。',
+      description: '获取指定文件的详细信息，包括类型、大小、共享状态、创建者等。支持通过文件ID或分享码访问。返回的 content_url 可以配合 WebFetch 工具读取文件内容进行分析。',
       parameters: z.object({
         file_id: z.union([z.number(), z.string()])
           .describe('文件ID（数字）或分享码（字符串）'),
