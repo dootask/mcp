@@ -1,29 +1,29 @@
-# MCP 远程服务器（云端版）
+# MCP Remote Server (Cloud Edition)
 
-让工作区以 **远程 HTTP 服务** 的形式向 Claude、Model Context Protocol (MCP) 客户端暴露工具集。安装后，具备权限的成员可以在插件页面即时获取个人 Token 与服务器地址，无需在本地手动运行进程。
+Expose your workspace as a **remote HTTP service** to Claude and Model Context Protocol (MCP) clients. After installation, authorized members can instantly obtain their personal Token and server address from the plugin page without manually running local processes.
 
-## 插件能做什么？
+## What Can This Plugin Do?
 
-- ✅ 与桌面版 MCP 服务器一致的 15 款工具（用户 / 项目 / 任务 / 消息等完整能力）
-- 🌐 统一部署在插件平台，可被多位成员同时远程访问
-- 🔐 仍使用个人 Token 鉴权，权限与账号保持一致
-- ⚡️ 一键复制 Claude Desktop、fastmcp CLI 等常用客户端配置
+- ✅ 25 tools consistent with the desktop MCP server (complete capabilities for users / projects / tasks / messages / files / work reports)
+- 🌐 Centrally deployed on the plugin platform, accessible remotely by multiple members simultaneously
+- 🔐 Uses personal Token authentication, permissions remain consistent with account
+- ⚡️ One-click copy of configuration for Claude Desktop, fastmcp CLI, and other common clients
 
-## 与「桌面 MCP 服务器」的区别
+## Differences from "Desktop MCP Server"
 
-- 部署位置：桌面版运行在个人电脑，本插件常驻于平台容器，可通过 HTTPS 远程访问。
-- 适用场景：桌面版适合个人快速调试，本插件适合团队或跨环境协作，随时随地接入。
-- 网络要求：桌面版仅限 `http://localhost`，本插件由平台自动生成 `/apps/mcp_server/...` 的对外地址。
-- Token 管理：桌面版需手动复制保存，本插件在指南页面实时获取，随用随取，失效后可重新复制。
+- Deployment location: Desktop version runs on personal computers, this plugin resides in platform containers and is accessible via HTTPS remotely.
+- Use case: Desktop version is suitable for quick personal debugging, this plugin is ideal for team or cross-environment collaboration, accessible anytime, anywhere.
+- Network requirements: Desktop version is limited to `http://localhost`, this plugin automatically generates public addresses at `/apps/mcp_server/...`.
+- Token management: Desktop version requires manual copying and saving, this plugin provides real-time Token retrieval on the guide page, available on-demand and can be re-copied after expiration.
 
-如果你只需要在个人电脑上临时试用 MCP，桌面版即可满足需求；当需要 **共享给团队或在云端/移动端与 Claude 协作** 时，请选择本插件。
+If you only need to temporarily try MCP on your personal computer, the desktop version is sufficient; when you need to **share with a team or collaborate with Claude in the cloud/mobile**, choose this plugin.
 
-## 如何使用？
+## How to Use?
 
-安装完成后，可在应用中心看到 “MCP 指南”。
+After installation, you can see "MCP Guide" in the application center.
 
-## 常见问题
+## FAQ
 
-- **这个服务需要对外开放端口吗？** 不需要。插件容器由平台托管，自动通过 HTTPS 对外提供 `/apps/mcp_server/mcp` 和 `/apps/mcp_server/sse`。
-- **Token 会共享给其他人吗？** 不会。页面仅在当前登录会话中读取 Token，复制后请妥善保管。
-- **可以在移动端或浏览器中使用吗？** 只要 Claude/兼容 MCP 的客户端能访问插件提供的地址，就能连接到你的工作区。
+- **Does this service need to expose external ports?** No. The plugin container is hosted by the platform and automatically provides `/apps/mcp_server/mcp` and `/apps/mcp_server/sse` via HTTPS.
+- **Will the Token be shared with others?** No. The page only reads the Token in the current login session. Please keep it safe after copying.
+- **Can it be used on mobile or browser?** As long as Claude/MCP-compatible clients can access the address provided by the plugin, they can connect to your workspace.
