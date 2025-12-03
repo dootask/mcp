@@ -246,6 +246,14 @@ export default function App() {
     [],
   );
 
+  if (state === 'loading') {
+    return (
+      <main className="page-loading">
+        <div className="loading-indicator"></div>
+      </main>
+    );
+  }
+
   return (
     <main>
       <h1>MCP 使用指南</h1>
@@ -258,7 +266,6 @@ export default function App() {
         <p>点击下方按钮获取当前账号的 DooTask Token，并用于配置 MCP 客户端。</p>
         <div className="info-box">
           <span className="info-value">
-            {state === 'loading' && '获取中…'}
             {state === 'error' && '无法获取 Token'}
             {state === 'ready' && data?.token}
           </span>
