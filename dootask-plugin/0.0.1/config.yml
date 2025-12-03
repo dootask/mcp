@@ -5,3 +5,4 @@ menu_items:
       zh: MCP 指南
     url: "apps/mcp_server/?theme={system_theme}"
     url_type: iframe
+    immersive: true

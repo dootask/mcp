@@ -9,6 +9,8 @@
   --border: rgba(15, 23, 42, 0.08);
   --info-bg: rgba(37, 99, 235, 0.08);
   --code-bg: #0f172a;
+  --safe-top: 0px;
+  --safe-bottom: 0px;
 }
 
 :root[data-theme='dark'] {
@@ -24,7 +26,6 @@
 
 body {
   margin: 0;
-  padding: 32px 24px 48px;
   background: var(--bg);
   color: var(--fg);
 }
@@ -32,6 +33,7 @@ body {
 main {
   max-width: 880px;
   margin: 0 auto;
+  padding: calc(32px + var(--safe-top, 0px)) 24px calc(48px + var(--safe-bottom, 0px));
 }
 
 h1 {

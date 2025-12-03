@@ -4,6 +4,7 @@ import {
   getUserToken,
   getUserInfo,
   requestAPI,
+  getSafeArea,
 } from '@dootask/tools';
 import { CopyButton } from './components/CopyButton';
 
@@ -37,13 +38,18 @@ export default function App() {
     const load = async () => {
       try {
         await appReady();
-        const [token, user, expireInfo] = await Promise.all([
+        const [token, user, expireInfo, safe] = await Promise.all([
           getUserToken(),
           getUserInfo().catch(() => null),
           requestAPI({ url: 'users/token/expire' }).catch(() => null),
+          getSafeArea().catch(() => ({ top: 0, bottom: 0 })),
         ]);
 
         if (!mounted) return;
+
+        const root = document.documentElement;
+        root.style.setProperty('--safe-top', `${safe?.top ?? 0}px`);
+        root.style.setProperty('--safe-bottom', `${safe?.bottom ?? 0}px`);
 
         setData({
           token,
