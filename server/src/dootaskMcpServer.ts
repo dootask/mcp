@@ -65,7 +65,8 @@ export class DooTaskMcpServer {
     if (!token) {
       this.logger.warn({ tool: path }, 'Missing Authorization token for MCP request');
       return {
-        error: 'Authorization header missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>".',
+        error:
+          'Authorization header or URL token missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>" or add "?token=<DooTaskToken>" to the URL.',
       };
     }
 
@@ -83,17 +84,15 @@ export class DooTaskMcpServer {
       'Authenticating incoming HTTP request',
     );
 
-    if (!headers) {
-      throw new Error('Authorization header missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>".');
-    }
-
-    const token = this.findAuthorization(headers);
+    const token = (headers ? this.findAuthorization(headers) : undefined) ?? this.findTokenFromUrl(request.url);
     if (!token) {
-      throw new Error('Authorization header missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>".');
+      throw new Error(
+        'Authorization header or URL token missing. Please configure your MCP client with "Authorization: Bearer <DooTaskToken>" or add "?token=<DooTaskToken>" to the URL.',
+      );
     }
 
     return {
-      headers,
+      headers: headers ?? {},
       token,
     };
   }
@@ -119,6 +118,11 @@ export class DooTaskMcpServer {
       if (header) {
         return header;
       }
+    }
+
+    const urlToken = this.findTokenFromUrl(this.findContextUrl(context));
+    if (urlToken) {
+      return urlToken;
     }
 
     return undefined;
@@ -185,6 +189,25 @@ export class DooTaskMcpServer {
       this.normalizeHeaders(context?.request?.headers),
       this.normalizeHeaders(context?.session?.headers),
     ].filter(Boolean) as Record<string, string>[];
+  }
+
+  private findContextUrl(context: any): string | undefined {
+    if (!context) {
+      return undefined;
+    }
+    const candidates = [
+      context?.url,
+      context?.request?.url,
+      context?.metadata?.url,
+      context?.session?.url,
+      context?.session?.metadata?.url,
+    ];
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate;
+      }
+    }
+    return undefined;
   }
 
   private readHostRecord(record: Record<string, unknown> | undefined): string | undefined {
@@ -333,6 +356,20 @@ export class DooTaskMcpServer {
     }
 
     return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  private findTokenFromUrl(url: string | undefined): string | undefined {
+    if (!url) {
+      return undefined;
+    }
+
+    try {
+      const parsed = new URL(url, 'http://localhost');
+      const token = parsed.searchParams.get('token') ?? parsed.searchParams.get('access_token');
+      return token && token.trim() ? token.trim() : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**

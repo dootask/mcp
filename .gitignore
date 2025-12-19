@@ -1,6 +1,7 @@
 node_modules
 dist
 .claude
+.cursor
 .DS_Store
 .mcp.json
 *.log
