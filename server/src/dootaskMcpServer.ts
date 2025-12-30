@@ -2058,5 +2058,161 @@ export class DooTaskMcpServer {
         };
       },
     });
+
+    // 智能搜索：统一搜索工具
+    this.mcp.addTool({
+      name: 'intelligent_search',
+      description: '智能搜索工具，可搜索任务、项目、文件、联系人等内容。支持语义搜索，能够理解搜索意图并返回相关结果。可指定搜索类型或搜索全部类型。',
+      parameters: z.object({
+        keyword: z.string()
+          .min(1)
+          .describe('搜索关键词'),
+        types: z.array(z.enum(['task', 'project', 'file', 'contact']))
+          .optional()
+          .describe('搜索类型数组，可选值: task(任务), project(项目), file(文件), contact(联系人)。不传则搜索全部类型'),
+        search_type: z.enum(['text', 'vector', 'hybrid'])
+          .optional()
+          .describe('搜索模式: text(文本匹配), vector(语义搜索), hybrid(混合搜索，默认)'),
+        take: z.number()
+          .optional()
+          .describe('每种类型获取数量，默认10，最大50'),
+      }),
+      execute: async (params, context) => {
+        const keyword = params.keyword;
+        const searchType = params.search_type || 'hybrid';
+        const take = params.take && params.take > 0 ? Math.min(params.take, 50) : 10;
+        const types = params.types && params.types.length > 0
+          ? params.types
+          : ['task', 'project', 'file', 'contact'];
+
+        const results: Record<string, any[]> = {
+          tasks: [],
+          projects: [],
+          files: [],
+          contacts: [],
+        };
+
+        const searchPromises: Promise<void>[] = [];
+
+        // 搜索任务
+        if (types.includes('task')) {
+          searchPromises.push(
+            this.request('GET', 'search/task', {
+              key: keyword,
+              search_type: searchType,
+              take: take,
+            }, context).then((result) => {
+              if (!result.error && Array.isArray(result.data)) {
+                results.tasks = result.data.map((task: any) => ({
+                  id: task.id,
+                  name: task.name,
+                  desc: task.desc || '',
+                  content_preview: task.content_preview || '',
+                  status: task.complete_at ? '已完成' : '未完成',
+                  project_id: task.project_id,
+                  project_name: task.project_name || '',
+                  end_at: task.end_at || '',
+                  relevance: task.relevance || 0,
+                }));
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // 搜索项目
+        if (types.includes('project')) {
+          searchPromises.push(
+            this.request('GET', 'search/project', {
+              key: keyword,
+              search_type: searchType,
+              take: take,
+            }, context).then((result) => {
+              if (!result.error && Array.isArray(result.data)) {
+                results.projects = result.data.map((project: any) => ({
+                  id: project.id,
+                  name: project.name,
+                  desc: project.desc || '',
+                  desc_preview: project.desc_preview || '',
+                  archived: !!project.archived_at,
+                  relevance: project.relevance || 0,
+                }));
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // 搜索文件
+        if (types.includes('file')) {
+          searchPromises.push(
+            this.request('GET', 'search/file', {
+              key: keyword,
+              search_type: searchType,
+              take: take,
+            }, context).then((result) => {
+              if (!result.error && Array.isArray(result.data)) {
+                results.files = result.data.map((file: any) => ({
+                  id: file.id,
+                  name: file.name,
+                  type: file.type,
+                  ext: file.ext || '',
+                  size: file.size || 0,
+                  content_preview: file.content_preview || '',
+                  relevance: file.relevance || 0,
+                }));
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // 搜索联系人
+        if (types.includes('contact')) {
+          searchPromises.push(
+            this.request('GET', 'search/contact', {
+              key: keyword,
+              search_type: searchType,
+              take: take,
+            }, context).then((result) => {
+              if (!result.error && Array.isArray(result.data)) {
+                results.contacts = result.data.map((user: any) => ({
+                  userid: user.userid,
+                  nickname: user.nickname || '',
+                  email: user.email || '',
+                  profession: user.profession || '',
+                  introduction_preview: user.introduction_preview || '',
+                  relevance: user.relevance || 0,
+                }));
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // 等待所有搜索完成
+        await Promise.all(searchPromises);
+
+        const totalCount = results.tasks.length
+          + results.projects.length
+          + results.files.length
+          + results.contacts.length;
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              keyword,
+              search_type: searchType,
+              types_searched: types,
+              results,
+              total_count: totalCount,
+              summary: {
+                tasks: results.tasks.length,
+                projects: results.projects.length,
+                files: results.files.length,
+                contacts: results.contacts.length,
+              },
+            }, null, 2),
+          }],
+        };
+      },
+    });
   }
 }
