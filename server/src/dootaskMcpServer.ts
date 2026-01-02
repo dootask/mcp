@@ -2062,14 +2062,14 @@ export class DooTaskMcpServer {
     // 智能搜索：统一搜索工具
     this.mcp.addTool({
       name: 'intelligent_search',
-      description: '智能搜索工具，可搜索任务、项目、文件、联系人等内容。支持语义搜索，能够理解搜索意图并返回相关结果。可指定搜索类型或搜索全部类型。',
+      description: '智能搜索工具，可搜索任务、项目、文件、联系人、消息等内容。支持语义搜索，能够理解搜索意图并返回相关结果。可指定搜索类型或搜索全部类型。',
       parameters: z.object({
         keyword: z.string()
           .min(1)
           .describe('搜索关键词'),
-        types: z.array(z.enum(['task', 'project', 'file', 'contact']))
+        types: z.array(z.enum(['task', 'project', 'file', 'contact', 'message']))
           .optional()
-          .describe('搜索类型数组，可选值: task(任务), project(项目), file(文件), contact(联系人)。不传则搜索全部类型'),
+          .describe('搜索类型数组，可选值: task(任务), project(项目), file(文件), contact(联系人), message(消息)。不传则搜索全部类型'),
         search_type: z.enum(['text', 'vector', 'hybrid'])
           .optional()
           .describe('搜索模式: text(文本匹配), vector(语义搜索), hybrid(混合搜索，默认)'),
@@ -2083,13 +2083,14 @@ export class DooTaskMcpServer {
         const take = params.take && params.take > 0 ? Math.min(params.take, 50) : 10;
         const types = params.types && params.types.length > 0
           ? params.types
-          : ['task', 'project', 'file', 'contact'];
+          : ['task', 'project', 'file', 'contact', 'message'];
 
         const results: Record<string, any[]> = {
           tasks: [],
           projects: [],
           files: [],
           contacts: [],
+          messages: [],
         };
 
         const searchPromises: Promise<void>[] = [];
@@ -2110,6 +2111,7 @@ export class DooTaskMcpServer {
                   content_preview: task.content_preview || '',
                   status: task.complete_at ? '已完成' : '未完成',
                   project_id: task.project_id,
+                  parent_id: task.parent_id || 0,
                   project_name: task.project_name || '',
                   end_at: task.end_at || '',
                   relevance: task.relevance || 0,
@@ -2186,13 +2188,38 @@ export class DooTaskMcpServer {
           );
         }
 
+        // 搜索消息
+        if (types.includes('message')) {
+          searchPromises.push(
+            this.request('GET', 'search/message', {
+              key: keyword,
+              search_type: searchType,
+              take: take,
+            }, context).then((result) => {
+              if (!result.error && Array.isArray(result.data)) {
+                results.messages = result.data.map((msg: any) => ({
+                  id: msg.id,
+                  dialog_id: msg.dialog_id,
+                  userid: msg.userid,
+                  nickname: msg.user?.nickname || '',
+                  type: msg.type || '',
+                  content_preview: msg.content_preview || msg.msg || '',
+                  created_at: msg.created_at || '',
+                  relevance: msg.relevance || 0,
+                }));
+              }
+            }).catch(() => {})
+          );
+        }
+
         // 等待所有搜索完成
         await Promise.all(searchPromises);
 
         const totalCount = results.tasks.length
           + results.projects.length
           + results.files.length
-          + results.contacts.length;
+          + results.contacts.length
+          + results.messages.length;
 
         return {
           content: [{
@@ -2208,6 +2235,7 @@ export class DooTaskMcpServer {
                 projects: results.projects.length,
                 files: results.files.length,
                 contacts: results.contacts.length,
+                messages: results.messages.length,
               },
             }, null, 2),
           }],
