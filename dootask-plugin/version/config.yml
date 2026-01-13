@@ -1,0 +1,13 @@
+menu_items:
+  - location: application
+    label:
+      en: MCP Guide
+      zh: MCP 指南
+    url: "apps/mcp_server/?theme={system_theme}&lang={system_lang}"
+    url_type: iframe
+    immersive: true
+require_version:
+  version: "> 1.5.18"
+  reason:
+    en: "Requires new API features"
+    zh: "需要新的 API 功能"
