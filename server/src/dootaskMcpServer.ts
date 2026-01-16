@@ -1645,16 +1645,38 @@ export class DooTaskMcpServer {
     // 文件管理：获取文件详情
     this.mcp.addTool({
       name: 'get_file_detail',
-      description: '获取文件详情，包括类型、大小、共享状态等。支持文件ID或分享码。',
+      description: '获取文件详情，包括类型、大小、正文内容、共享状态等。',
       parameters: z.object({
         file_id: z.union([z.number(), z.string()])
-          .describe('文件ID（数字）或分享码（字符串）'),
+          .describe('文件ID 或分享码'),
+        with_content: z.boolean()
+          .optional()
+          .describe('是否提取文本内容'),
+        text_offset: z.number()
+          .optional()
+          .describe('文本起始位置'),
+        text_limit: z.number()
+          .optional()
+          .describe('获取长度，默认50000，最大200000'),
       }),
       execute: async (params, context) => {
-        const result = await this.request('GET', 'file/one', {
+        const requestData: Record<string, unknown> = {
           id: params.file_id,
           with_url: 'yes',
-        }, context);
+        };
+
+        // 如果需要提取文本内容
+        if (params.with_content) {
+          requestData.with_text = 'yes';
+          if (params.text_offset !== undefined) {
+            requestData.text_offset = params.text_offset;
+          }
+          if (params.text_limit !== undefined) {
+            requestData.text_limit = Math.min(params.text_limit, 200000);
+          }
+        }
+
+        const result = await this.request('GET', 'file/one', requestData, context);
 
         if (result.error) {
           throw new Error(result.error);
@@ -1662,7 +1684,7 @@ export class DooTaskMcpServer {
 
         const file = result.data as any;
 
-        const fileDetail = {
+        const fileDetail: Record<string, unknown> = {
           file_id: file.id,
           name: file.name,
           type: file.type,
@@ -1677,10 +1699,64 @@ export class DooTaskMcpServer {
           updated_at: file.updated_at,
         };
 
+        // 如果有文本内容
+        if (file.text_content) {
+          if (file.text_content.error) {
+            fileDetail.text_error = file.text_content.error;
+          } else {
+            fileDetail.text_content = file.text_content.content;
+            fileDetail.text_total_length = file.text_content.total_length;
+            fileDetail.text_offset = file.text_content.offset;
+            fileDetail.text_limit = file.text_content.limit;
+            fileDetail.text_has_more = file.text_content.has_more;
+          }
+        }
+
         return {
           content: [{
             type: 'text',
             text: JSON.stringify(fileDetail, null, 2),
+          }],
+        };
+      },
+    });
+
+    // 文件管理：通过路径获取文件内容
+    this.mcp.addTool({
+      name: 'fetch_file_content',
+      description: '通过文件路径获取文本内容。',
+      parameters: z.object({
+        path: z.string()
+          .describe('系统内文件路径或URL'),
+        offset: z.number()
+          .optional()
+          .describe('起始位置'),
+        limit: z.number()
+          .optional()
+          .describe('获取长度，默认50000，最大200000'),
+      }),
+      execute: async (params, context) => {
+        const requestData: Record<string, unknown> = {
+          path: params.path,
+        };
+
+        if (params.offset !== undefined) {
+          requestData.offset = params.offset;
+        }
+        if (params.limit !== undefined) {
+          requestData.limit = Math.min(params.limit, 200000);
+        }
+
+        const result = await this.request('GET', 'file/fetch', requestData, context);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result.data, null, 2),
           }],
         };
       },
