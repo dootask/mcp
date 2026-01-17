@@ -5,6 +5,7 @@ import { loadConfig } from './config';
 import { createLogger } from './logger';
 import { DooTaskToolsClient } from './dootaskClient';
 import { DooTaskMcpServer } from './dootaskMcpServer';
+import { OcrService } from './ocrService';
 
 const DEFAULT_GUIDE_FILE = 'index.html';
 
@@ -76,17 +77,34 @@ async function bootstrap(): Promise<void> {
 
   const client = new DooTaskToolsClient(config.baseUrl, config.requestTimeout, logger);
   const mcpServer = new DooTaskMcpServer(client, logger);
+  const ocrService = new OcrService(logger);
 
-  const guideServer = http.createServer((req, res) => {
+  const guideServer = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const pathname = url.pathname;
 
+    // 健康检查
     if (pathname === '/healthz' || pathname === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
       return;
     }
 
+    // OCR API 端点
+    if (pathname === '/ocr') {
+      try {
+        await ocrService.handleRequest(req, res);
+      } catch (err) {
+        logger.error({ err }, 'Unexpected OCR handler error');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Internal server error' }));
+      }
+      return;
+    }
+
+    // Guide 静态资源
     const assetPath = findGuideAsset(pathname);
     if (!assetPath) {
       logger.warn({ path: pathname }, 'Guide asset not found');
@@ -116,6 +134,7 @@ async function bootstrap(): Promise<void> {
     logger.info({ signal }, 'Received shutdown signal');
     try {
       guideServer.close();
+      await ocrService.terminate();
       await mcpServer.stop();
       logger.info('Servers stopped gracefully');
     } catch (error) {
