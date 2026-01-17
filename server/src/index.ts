@@ -6,6 +6,7 @@ import { createLogger } from './logger';
 import { DooTaskToolsClient } from './dootaskClient';
 import { DooTaskMcpServer } from './dootaskMcpServer';
 import { OcrService } from './ocrService';
+import { OperationWebSocket, createOperationTools } from './operation';
 
 const DEFAULT_GUIDE_FILE = 'index.html';
 
@@ -126,8 +127,21 @@ async function bootstrap(): Promise<void> {
   await mcpServer.start(config.port);
   logger.info(`MCP server is listening on http://0.0.0.0:${config.port}/mcp`);
 
+  // 创建前端操作 WebSocket 服务
+  const operationWs = new OperationWebSocket({
+    server: guideServer,
+    path: '/mcp/operation',
+    logger,
+    baseUrl: config.baseUrl,
+  });
+
+  // 注册前端操作工具到 MCP Server
+  const operationTools = createOperationTools(operationWs.connectionManager, logger);
+  mcpServer.registerOperationTools(operationTools);
+
   guideServer.listen(config.healthPort, '0.0.0.0', () => {
     logger.info(`Guide server ready at http://0.0.0.0:${config.healthPort}/`);
+    logger.info(`Operation WebSocket ready at ws://0.0.0.0:${config.healthPort}/mcp/operation`);
   });
 
   const shutdown = async (signal: NodeJS.Signals) => {

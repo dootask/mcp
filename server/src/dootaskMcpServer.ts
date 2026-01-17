@@ -59,6 +59,26 @@ export class DooTaskMcpServer {
     }
   }
 
+  /**
+   * 注册前端操作工具
+   */
+  registerOperationTools(tools: Record<string, {
+    name: string;
+    description: string;
+    parameters: any;
+    execute: (params: any) => Promise<any>;
+  }>): void {
+    for (const tool of Object.values(tools)) {
+      this.mcp.addTool({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+        execute: tool.execute,
+      });
+      this.logger.info({ toolName: tool.name }, 'Registered operation tool');
+    }
+  }
+
   private async request(
     method: HttpMethod,
     path: string,
