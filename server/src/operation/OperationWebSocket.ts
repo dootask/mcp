@@ -93,9 +93,7 @@ export class OperationWebSocket {
   private async verifyToken(token: string): Promise<{ userid: number } | null> {
     try {
       const response = await axios.get(`${this.baseUrl}/api/users/info`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        params: { token },
         timeout: 10000,
       });
 
