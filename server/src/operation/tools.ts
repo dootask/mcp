@@ -6,10 +6,13 @@ export function createOperationTools(connectionManager: ConnectionManager, logge
   return {
     get_page_context: {
       name: 'get_page_context',
-      description: '获取用户当前页面信息，返回页面类型、元素列表、可用操作（available_actions）。支持分页。',
+      description: '获取当前页面上下文：页面类型、可交互元素、可用操作(available_actions)。',
       parameters: z.object({
         session_id: z.string()
           .describe('会话标识'),
+        query: z.string()
+          .optional()
+          .describe('按关键词/语义筛选元素'),
         include_elements: z.boolean()
           .optional()
           .default(true)
@@ -20,25 +23,26 @@ export function createOperationTools(connectionManager: ConnectionManager, logge
           .describe('仅返回可交互元素'),
         max_elements: z.number()
           .optional()
-          .default(50)
-          .describe('每页元素数量'),
+          .default(100)
+          .describe('返回元素数量上限'),
         offset: z.number()
           .optional()
           .default(0)
-          .describe('分页偏移量'),
+          .describe('跳过前N个元素'),
         container: z.string()
           .optional()
           .describe('容器选择器，限定扫描范围'),
       }),
       execute: async (params: {
         session_id: string;
+        query?: string;
         include_elements?: boolean;
         interactive_only?: boolean;
         max_elements?: number;
         offset?: number;
         container?: string;
       }) => {
-        logger.info({ sessionId: params.session_id, offset: params.offset, container: params.container }, 'get_page_context called');
+        logger.info({ sessionId: params.session_id, query: params.query, offset: params.offset, container: params.container }, 'get_page_context called');
 
         if (!connectionManager.hasConnection(params.session_id)) {
           throw new Error('客户端未连接，请确保用户已打开AI助手');
@@ -48,9 +52,10 @@ export function createOperationTools(connectionManager: ConnectionManager, logge
           params.session_id,
           'get_page_context',
           {
+            query: params.query,
             include_elements: params.include_elements ?? true,
             interactive_only: params.interactive_only ?? false,
-            max_elements: params.max_elements ?? 50,
+            max_elements: params.max_elements ?? 100,
             offset: params.offset ?? 0,
             container: params.container,
           },
