@@ -813,14 +813,38 @@ export class DooTaskMcpServer {
         task_id: z.number()
           .min(1)
           .describe('要标记完成的任务ID'),
+        flow_item_id: z.number()
+          .optional()
+          .describe('工作流状态ID'),
       }),
       execute: async (params, context) => {
-        const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-        const result = await this.request('POST', 'project/task/update', {
+        const requestData: Record<string, unknown> = {
           task_id: params.task_id,
-          complete_at: now,
-        }, context);
+        };
+
+        // 标记完成时始终需要传 complete_at
+        requestData.complete_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        if (params.flow_item_id) {
+          requestData.flow_item_id = params.flow_item_id;
+        }
+
+        const result = await this.request('POST', 'project/task/update', requestData, context);
+
+        // 处理多结束状态的情况
+        if (result.ret === -4005) {
+          const flowItems = (result.data as any)?.flow_items || [];
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                message: '存在多个结束状态，请选择要使用的状态后重新调用此工具，并指定flow_item_id参数',
+                task_id: params.task_id,
+                flow_items: flowItems,
+              }, null, 2),
+            }],
+          };
+        }
 
         if (result.error) {
           throw new Error(result.error);
@@ -942,6 +966,9 @@ export class DooTaskMcpServer {
         complete_at: z.union([z.string(), z.boolean()])
           .optional()
           .describe('完成时间。传时间字符串标记完成，传false标记未完成'),
+        flow_item_id: z.number()
+          .optional()
+          .describe('工作流状态ID'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -956,8 +983,41 @@ export class DooTaskMcpServer {
         if (params.start_at !== undefined) requestData.start_at = params.start_at;
         if (params.end_at !== undefined) requestData.end_at = params.end_at;
         if (params.complete_at !== undefined) requestData.complete_at = params.complete_at;
+        if (params.flow_item_id !== undefined) requestData.flow_item_id = params.flow_item_id;
 
         const result = await this.request('POST', 'project/task/update', requestData, context);
+
+        // 处理多结束状态的情况（标记完成时）
+        if (result.ret === -4005) {
+          const flowItems = (result.data as any)?.flow_items || [];
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                message: '存在多个结束状态，请选择要使用的状态后重新调用此工具，并指定flow_item_id参数',
+                task_id: params.task_id,
+                flow_items: flowItems,
+              }, null, 2),
+            }],
+          };
+        }
+
+        // 处理多开始状态的情况（取消完成时）
+        if (result.ret === -4006) {
+          const flowItems = (result.data as any)?.flow_items || [];
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                message: '存在多个开始状态，请选择要使用的状态后重新调用此工具，并指定flow_item_id参数',
+                task_id: params.task_id,
+                flow_items: flowItems,
+              }, null, 2),
+            }],
+          };
+        }
 
         if (result.error) {
           throw new Error(result.error);

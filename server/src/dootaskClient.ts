@@ -4,6 +4,7 @@ import { Logger } from 'pino';
 export interface RequestResult<T = unknown> {
   data?: T;
   error?: string;
+  ret?: number;
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -64,10 +65,10 @@ export class DooTaskToolsClient {
 
       if (payload.ret !== 1) {
         const errorMessage = payload.msg || `Request failed with code ${payload.ret ?? 'unknown'}`;
-        return { error: errorMessage };
+        return { error: errorMessage, ret: payload.ret, data: payload.data as T };
       }
 
-      return { data: payload.data as T };
+      return { data: payload.data as T, ret: payload.ret };
     } catch (error) {
       const message = this.resolveErrorMessage(error);
       this.logger.error({ err: error, path, method }, 'DoTaskToolsClient request failed');
