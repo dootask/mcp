@@ -1570,6 +1570,50 @@ export class DooTaskMcpServer {
       },
     });
 
+    // 以AI助手身份发送消息到任务对话
+    this.mcp.addTool({
+      name: 'send_task_ai_message',
+      description: '以AI助手身份发送消息到任务对话，用于向团队汇报进展或结果。',
+      parameters: z.object({
+        task_id: z.number()
+          .describe('目标任务ID'),
+        text: z.string()
+          .min(1)
+          .describe('消息内容，支持Markdown格式'),
+        silence: z.boolean()
+          .optional()
+          .describe('是否静默发送（不触发推送通知）'),
+      }),
+      execute: async (params, context) => {
+        const payload: Record<string, unknown> = {
+          task_id: params.task_id,
+          text: params.text,
+          text_type: 'md',
+        };
+
+        if (params.silence !== undefined) {
+          payload.silence = params.silence ? 'yes' : 'no';
+        }
+
+        const result = await this.request('POST', 'dialog/msg/send_ai_assistant', payload, context);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              task_id: params.task_id,
+              message: result.data,
+            }, null, 2),
+          }],
+        };
+      },
+    });
+
     // 获取对话消息列表
     this.mcp.addTool({
       name: 'get_message_list',
