@@ -1506,10 +1506,10 @@ export class DooTaskMcpServer {
       parameters: z.object({
         dialog_id: z.number()
           .optional()
-          .describe('Dialog ID. Required if userid is not provided'),
+          .describe('Dialog ID. Takes precedence over userid if both provided. Required if userid is not provided'),
         userid: z.number()
           .optional()
-          .describe('User ID, opens or creates a private chat. Required if dialog_id is not provided'),
+          .describe('User ID, opens or creates a private chat. Ignored if dialog_id is provided. Required if dialog_id is not provided'),
         text: z.string()
           .min(1)
           .describe('Message content'),
@@ -1621,10 +1621,10 @@ export class DooTaskMcpServer {
       parameters: z.object({
         dialog_id: z.number()
           .optional()
-          .describe('Dialog ID. Required if userid is not provided'),
+          .describe('Dialog ID. Takes precedence over userid if both provided. Required if userid is not provided'),
         userid: z.number()
           .optional()
-          .describe('User ID, to get private chat history. Required if dialog_id is not provided'),
+          .describe('User ID, to get private chat history. Ignored if dialog_id is provided. Required if dialog_id is not provided'),
         msg_id: z.number()
           .optional()
           .describe('Load messages around this message ID'),
@@ -2535,10 +2535,10 @@ export class DooTaskMcpServer {
       parameters: z.object({
         file_id: z.union([z.number(), z.string()])
           .optional()
-          .describe('File ID or share code. Required if image_url is not provided'),
+          .describe('File ID or share code. Takes precedence over image_url if both provided. Required if image_url is not provided'),
         image_url: z.string()
           .optional()
-          .describe('Image URL. Required if file_id is not provided'),
+          .describe('Image URL. Ignored if file_id is provided. Required if file_id is not provided'),
       }),
       execute: async (params, context) => {
         // 参数校验
