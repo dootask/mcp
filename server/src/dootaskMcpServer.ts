@@ -477,12 +477,12 @@ export class DooTaskMcpServer {
     // 用户管理：获取用户基础信息
     this.mcp.addTool({
       name: 'get_users_basic',
-      description: '批量获取用户基础信息（昵称、邮箱、头像等），支持1-50个用户。',
+      description: 'Batch fetch basic user info (nickname, email, avatar, etc.) for 1-50 users.',
       parameters: z.object({
         userids: z.array(z.number())
           .min(1)
           .max(50)
-          .describe('用户ID数组，至少1个，最多50个'),
+          .describe('Array of user IDs, min 1, max 50'),
       }),
       execute: async (params, context) => {
         const ids = params.userids;
@@ -526,32 +526,32 @@ export class DooTaskMcpServer {
     // 用户管理：搜索用户
     this.mcp.addTool({
       name: 'search_users',
-      description: '按关键词搜索用户，支持按项目/对话范围筛选。用于不知道具体用户ID时的查找。',
+      description: 'Search users by keyword. Filter by project or dialog scope. Use when specific user IDs are unknown.',
       parameters: z.object({
         keyword: z.string()
           .min(1)
-          .describe('搜索关键词，支持昵称、邮箱、拼音等'),
+          .describe('Search keyword, supports nickname, email, pinyin'),
         project_id: z.number()
           .optional()
-          .describe('仅返回指定项目的成员'),
+          .describe('Only return members of the specified project'),
         dialog_id: z.number()
           .optional()
-          .describe('仅返回指定对话的成员'),
+          .describe('Only return members of the specified dialog'),
         include_disabled: z.boolean()
           .optional()
-          .describe('是否同时包含已离职/禁用用户'),
+          .describe('Include deactivated/departed users'),
         include_bot: z.boolean()
           .optional()
-          .describe('是否同时包含机器人账号'),
+          .describe('Include bot accounts'),
         with_department: z.boolean()
           .optional()
-          .describe('是否返回部门信息'),
+          .describe('Include department info in results'),
         page: z.number()
           .optional()
-          .describe('页码，默认1'),
+          .describe('Page number, default 1'),
         pagesize: z.number()
           .optional()
-          .describe('每页数量，默认20，最大100'),
+          .describe('Page size, default 20, max 100'),
       }),
       execute: async (params, context) => {
         const page = params.page && params.page > 0 ? params.page : 1;
@@ -633,29 +633,29 @@ export class DooTaskMcpServer {
     // 获取任务列表
     this.mcp.addTool({
       name: 'list_tasks',
-      description: '获取当前用户相关的任务列表（负责/协助/关注），支持按状态、项目、时间范围筛选和搜索。',
+      description: 'List tasks related to the current user (as owner, collaborator, or follower). Supports filtering by status, project, time range, and search.',
       parameters: z.object({
         status: z.enum(['all', 'completed', 'uncompleted'])
           .optional()
-          .describe('任务状态: all(所有), completed(已完成), uncompleted(未完成)'),
+          .describe('Task status filter: all, completed, uncompleted'),
         search: z.string()
           .optional()
-          .describe('搜索关键词(可搜索任务ID、名称、描述)'),
+          .describe('Search keyword (task ID, name, or description)'),
         time: z.string()
           .optional()
-          .describe('时间范围: today(今天), week(本周), month(本月), year(今年), 自定义时间范围,如：2025-12-12,2025-12-30'),
+          .describe('Time range: today, week, month, year, or custom e.g. 2025-12-12,2025-12-30'),
         project_id: z.number()
           .optional()
-          .describe('项目ID,只获取指定项目的任务'),
+          .describe('Project ID, only return tasks in this project'),
         parent_id: z.number()
           .optional()
-          .describe('主任务ID。大于0:获取该主任务的子任务; -1:仅获取主任务; 不传:所有任务'),
+          .describe('Parent task ID. >0: get subtasks; -1: main tasks only; omit: all tasks'),
         page: z.number()
           .optional()
-          .describe('页码,默认1'),
+          .describe('Page number, default 1'),
         pagesize: z.number()
           .optional()
-          .describe('每页数量,默认20,最大100'),
+          .describe('Page size, default 20, max 100'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -729,11 +729,11 @@ export class DooTaskMcpServer {
     // 获取任务详情
     this.mcp.addTool({
       name: 'get_task',
-      description: '获取任务的完整详情，包括描述、内容、负责人、协助人、标签等。',
+      description: 'Get full task details including description, content, owners, assistants, and tags.',
       parameters: z.object({
         task_id: z.number()
           .min(1)
-          .describe('任务ID'),
+          .describe('Task ID'),
       }),
       execute: async (params, context) => {
         const taskResult = await this.request('GET', 'project/task/one', {
@@ -808,14 +808,14 @@ export class DooTaskMcpServer {
     // 完成任务
     this.mcp.addTool({
       name: 'complete_task',
-      description: '快速标记任务完成。主任务需所有子任务完成后才能标记。',
+      description: 'Mark a task as completed. Parent tasks require all subtasks to be completed first.',
       parameters: z.object({
         task_id: z.number()
           .min(1)
-          .describe('要标记完成的任务ID'),
+          .describe('Task ID to mark as completed'),
         flow_item_id: z.number()
           .optional()
-          .describe('工作流状态ID'),
+          .describe('Workflow status ID'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -867,32 +867,32 @@ export class DooTaskMcpServer {
     // 创建任务
     this.mcp.addTool({
       name: 'create_task',
-      description: '在指定项目中创建新任务。',
+      description: 'Create a new task in a specified project.',
       parameters: z.object({
         project_id: z.number()
           .min(1)
-          .describe('项目ID'),
+          .describe('Project ID'),
         name: z.string()
           .min(1)
-          .describe('任务名称'),
+          .describe('Task name'),
         content: z.string()
           .optional()
-          .describe('任务内容描述(Markdown 格式)'),
+          .describe('Task content (Markdown format)'),
         owner: z.array(z.number())
           .optional()
-          .describe('负责人用户ID数组'),
+          .describe('Array of owner user IDs'),
         assist: z.array(z.number())
           .optional()
-          .describe('协助人员用户ID数组'),
+          .describe('Array of assistant user IDs'),
         column_id: z.number()
           .optional()
-          .describe('列ID(看板列)'),
+          .describe('Kanban column ID'),
         start_at: z.string()
           .optional()
-          .describe('开始时间，格式: YYYY-MM-DD HH:mm:ss'),
+          .describe('Start time, format: YYYY-MM-DD HH:mm:ss'),
         end_at: z.string()
           .optional()
-          .describe('结束时间，格式: YYYY-MM-DD HH:mm:ss'),
+          .describe('End time, format: YYYY-MM-DD HH:mm:ss'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -937,38 +937,38 @@ export class DooTaskMcpServer {
     // 更新任务
     this.mcp.addTool({
       name: 'update_task',
-      description: '更新任务属性，只需提供要修改的字段。',
+      description: 'Update task properties. Only provide fields to modify.',
       parameters: z.object({
         task_id: z.number()
           .min(1)
-          .describe('任务ID'),
+          .describe('Task ID'),
         name: z.string()
           .optional()
-          .describe('任务名称'),
+          .describe('Task name'),
         content: z.string()
           .optional()
-          .describe('任务内容描述(Markdown 格式)'),
+          .describe('Task content (Markdown format)'),
         owner: z.array(z.number())
           .optional()
-          .describe('负责人用户ID数组'),
+          .describe('Array of owner user IDs'),
         assist: z.array(z.number())
           .optional()
-          .describe('协助人员用户ID数组'),
+          .describe('Array of assistant user IDs'),
         column_id: z.number()
           .optional()
-          .describe('移动到指定列ID'),
+          .describe('Target kanban column ID'),
         start_at: z.string()
           .optional()
-          .describe('开始时间，格式: YYYY-MM-DD HH:mm:ss'),
+          .describe('Start time, format: YYYY-MM-DD HH:mm:ss'),
         end_at: z.string()
           .optional()
-          .describe('结束时间，格式: YYYY-MM-DD HH:mm:ss'),
+          .describe('End time, format: YYYY-MM-DD HH:mm:ss'),
         complete_at: z.union([z.string(), z.boolean()])
           .optional()
-          .describe('完成时间。传时间字符串标记完成，传false标记未完成'),
+          .describe('Completion time string to mark complete, or false to mark incomplete'),
         flow_item_id: z.number()
           .optional()
-          .describe('工作流状态ID'),
+          .describe('Workflow status ID'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -1055,14 +1055,14 @@ export class DooTaskMcpServer {
     // 创建子任务
     this.mcp.addTool({
       name: 'create_sub_task',
-      description: '为指定主任务新增子任务，自动继承主任务所属项目与看板列配置。',
+      description: 'Add a subtask to a parent task. Inherits the parent task\'s project and kanban column.',
       parameters: z.object({
         task_id: z.number()
           .min(1)
-          .describe('主任务ID'),
+          .describe('Parent task ID'),
         name: z.string()
           .min(1)
-          .describe('子任务名称'),
+          .describe('Subtask name'),
       }),
       execute: async (params, context) => {
         const result = await this.request('POST', 'project/task/addsub', {
@@ -1100,11 +1100,11 @@ export class DooTaskMcpServer {
     // 获取任务附件
     this.mcp.addTool({
       name: 'get_task_files',
-      description: '获取指定任务的附件列表，包含文件名称、大小、下载地址等信息。',
+      description: 'Get attachment list for a task, including file name, size, and download URL.',
       parameters: z.object({
         task_id: z.number()
           .min(1)
-          .describe('任务ID'),
+          .describe('Task ID'),
       }),
       execute: async (params, context) => {
         const result = await this.request('GET', 'project/task/files', {
@@ -1144,14 +1144,14 @@ export class DooTaskMcpServer {
     // 删除或还原任务
     this.mcp.addTool({
       name: 'delete_task',
-      description: '删除或还原任务。默认执行删除，可通过 action=recovery 将任务从回收站恢复。',
+      description: 'Delete or recover a task. Default is delete; use action=recovery to restore from trash.',
       parameters: z.object({
         task_id: z.number()
           .min(1)
-          .describe('任务ID'),
+          .describe('Task ID'),
         action: z.enum(['delete', 'recovery'])
           .optional()
-          .describe('操作类型：delete(默认) 删除，recovery 还原'),
+          .describe('Action: delete (default) or recovery'),
       }),
       execute: async (params, context) => {
         const action = params.action || 'delete';
@@ -1182,20 +1182,20 @@ export class DooTaskMcpServer {
     // 获取项目列表
     this.mcp.addTool({
       name: 'list_projects',
-      description: '获取当前用户可访问的项目列表，支持按归档状态筛选、搜索项目名称。',
+      description: 'List projects accessible to the current user. Supports filtering by archive status and searching by name.',
       parameters: z.object({
         archived: z.enum(['no', 'yes', 'all'])
           .optional()
-          .describe('归档状态: no(未归档), yes(已归档), all(全部)，默认no'),
+          .describe('Archive filter: no (unarchived), yes (archived), all. Default: no'),
         search: z.string()
           .optional()
-          .describe('搜索关键词(可搜索项目名称)'),
+          .describe('Search keyword (project name)'),
         page: z.number()
           .optional()
-          .describe('页码，默认1'),
+          .describe('Page number, default 1'),
         pagesize: z.number()
           .optional()
-          .describe('每页数量，默认20'),
+          .describe('Page size, default 20'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -1243,11 +1243,11 @@ export class DooTaskMcpServer {
     // 获取项目详情
     this.mcp.addTool({
       name: 'get_project',
-      description: '获取指定项目的完整详细信息，包括项目描述、所有看板列、成员列表及权限等。比 list_projects 返回更详细的信息。',
+      description: 'Get full project details including description, kanban columns, members, and permissions. More detailed than list_projects.',
       parameters: z.object({
         project_id: z.number()
           .min(1)
-          .describe('项目ID'),
+          .describe('Project ID'),
       }),
       execute: async (params, context) => {
         // 并行获取项目详情和列信息
@@ -1301,23 +1301,23 @@ export class DooTaskMcpServer {
     // 创建项目
     this.mcp.addTool({
       name: 'create_project',
-      description: '创建新项目，可选设置项目描述、初始化列及流程状态。',
+      description: 'Create a new project with optional description, initial columns, and workflow settings.',
       parameters: z.object({
         name: z.string()
           .min(2)
-          .describe('项目名称，至少2个字符'),
+          .describe('Project name, min 2 characters'),
         desc: z.string()
           .optional()
-          .describe('项目描述'),
+          .describe('Project description'),
         columns: z.union([z.string(), z.array(z.string())])
           .optional()
-          .describe('初始化列名称，字符串使用逗号分隔，也可直接传字符串数组'),
+          .describe('Initial column names, comma-separated string or string array'),
         flow: z.enum(['open', 'close'])
           .optional()
-          .describe('是否开启流程，open/close，默认close'),
+          .describe('Enable workflow: open or close. Default: close'),
         personal: z.boolean()
           .optional()
-          .describe('是否创建个人项目，仅支持创建一个个人项目'),
+          .describe('Create as personal project (only one allowed)'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -1366,23 +1366,23 @@ export class DooTaskMcpServer {
     // 更新项目
     this.mcp.addTool({
       name: 'update_project',
-      description: '修改项目信息（名称、描述、归档策略等）。若未传 name 将自动沿用项目当前名称。',
+      description: 'Update project info (name, description, archive policy). If name is omitted, the current name is preserved.',
       parameters: z.object({
         project_id: z.number()
           .min(1)
-          .describe('项目ID'),
+          .describe('Project ID'),
         name: z.string()
           .optional()
-          .describe('项目名称'),
+          .describe('Project name'),
         desc: z.string()
           .optional()
-          .describe('项目描述'),
+          .describe('Project description'),
         archive_method: z.string()
           .optional()
-          .describe('归档方式'),
+          .describe('Archive method'),
         archive_days: z.number()
           .optional()
-          .describe('自动归档天数'),
+          .describe('Auto-archive after N days'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -1448,11 +1448,11 @@ export class DooTaskMcpServer {
     // 搜索对话
     this.mcp.addTool({
       name: 'search_dialogs',
-      description: '按名称搜索群聊或联系人对话。',
+      description: 'Search group chats or contact conversations by name.',
       parameters: z.object({
         keyword: z.string()
           .min(1)
-          .describe('搜索关键词'),
+          .describe('Search keyword'),
       }),
       execute: async (params, context) => {
         const result = await this.request('GET', 'dialog/search', {
@@ -1502,23 +1502,23 @@ export class DooTaskMcpServer {
     // 发送消息到对话
     this.mcp.addTool({
       name: 'send_message',
-      description: '发送消息到指定对话（私聊或群聊）。',
+      description: 'Send a message to a conversation (private or group chat).',
       parameters: z.object({
         dialog_id: z.number()
           .optional()
-          .describe('对话ID，群聊或已有私聊时使用'),
+          .describe('Dialog ID. Required if userid is not provided'),
         userid: z.number()
           .optional()
-          .describe('用户ID，私聊时使用'),
+          .describe('User ID, opens or creates a private chat. Required if dialog_id is not provided'),
         text: z.string()
           .min(1)
-          .describe('消息内容'),
+          .describe('Message content'),
         text_type: z.enum(['md', 'html'])
           .optional()
-          .describe('消息格式，默认 md'),
+          .describe('Message format: md or html. Default: md'),
         silence: z.boolean()
           .optional()
-          .describe('静默发送，不触发提醒'),
+          .describe('Send silently without notification'),
       }),
       execute: async (params, context) => {
         let dialogId = params.dialog_id;
@@ -1573,16 +1573,16 @@ export class DooTaskMcpServer {
     // 以AI助手身份发送消息到任务对话
     this.mcp.addTool({
       name: 'send_task_ai_message',
-      description: '以AI助手身份发送消息到任务对话。应在以下节点主动调用：每个重要步骤完成后、遇到阻塞时、全部工作完成时。',
+      description: 'Send a message to a task conversation as AI assistant. Should be proactively called: after each major milestone, when blocked, and when all work is done.',
       parameters: z.object({
         task_id: z.number()
-          .describe('目标任务ID'),
+          .describe('Target task ID'),
         text: z.string()
           .min(1)
-          .describe('消息内容，支持Markdown格式'),
+          .describe('Message content, supports Markdown'),
         silence: z.boolean()
           .optional()
-          .describe('是否静默发送（不触发推送通知）'),
+          .describe('Send silently without push notification'),
       }),
       execute: async (params, context) => {
         const payload: Record<string, unknown> = {
@@ -1617,29 +1617,29 @@ export class DooTaskMcpServer {
     // 获取对话消息列表
     this.mcp.addTool({
       name: 'get_message_list',
-      description: '获取指定对话的消息记录。',
+      description: 'Get message history for a conversation.',
       parameters: z.object({
         dialog_id: z.number()
           .optional()
-          .describe('对话ID'),
+          .describe('Dialog ID. Required if userid is not provided'),
         userid: z.number()
           .optional()
-          .describe('用户ID，获取与该用户的私聊记录'),
+          .describe('User ID, to get private chat history. Required if dialog_id is not provided'),
         msg_id: z.number()
           .optional()
-          .describe('围绕某条消息加载'),
+          .describe('Load messages around this message ID'),
         prev_id: z.number()
           .optional()
-          .describe('获取此消息之前的历史'),
+          .describe('Get messages before this ID'),
         next_id: z.number()
           .optional()
-          .describe('获取此消息之后的记录'),
+          .describe('Get messages after this ID'),
         msg_type: z.enum(['tag', 'todo', 'link', 'text', 'image', 'file', 'record', 'meeting'])
           .optional()
-          .describe('按类型筛选'),
+          .describe('Filter by message type'),
         take: z.number()
           .optional()
-          .describe('数量，最大100'),
+          .describe('Number of messages, max 100'),
       }),
       execute: async (params, context) => {
         let dialogId = params.dialog_id;
@@ -1706,11 +1706,11 @@ export class DooTaskMcpServer {
     // 文件管理：获取文件列表
     this.mcp.addTool({
       name: 'list_files',
-      description: '获取用户文件列表，支持按父级文件夹筛选。',
+      description: 'List user files, optionally filtered by parent folder.',
       parameters: z.object({
         pid: z.number()
           .optional()
-          .describe('父级文件夹ID，0或不传表示根目录'),
+          .describe('Parent folder ID, 0 or omit for root directory'),
       }),
       execute: async (params, context) => {
         const pid = params.pid !== undefined ? params.pid : 0;
@@ -1755,14 +1755,14 @@ export class DooTaskMcpServer {
     // 文件管理：搜索文件
     this.mcp.addTool({
       name: 'search_files',
-      description: '按关键词搜索用户文件系统中的文件，支持搜索文件名称、文件ID或分享链接。搜索范围包括：自己创建的文件和共享给自己的文件。',
+      description: 'Search files by keyword. Supports file name, file ID, or share link. Includes owned and shared files.',
       parameters: z.object({
         keyword: z.string()
           .min(1)
-          .describe('搜索关键词，支持文件名称、文件ID或分享链接'),
+          .describe('Search keyword: file name, file ID, or share link'),
         take: z.number()
           .optional()
-          .describe('返回数量，默认50，最大100'),
+          .describe('Max results, default 50, max 100'),
       }),
       execute: async (params, context) => {
         const take = params.take && params.take > 0 ? Math.min(params.take, 100) : 50;
@@ -1808,19 +1808,19 @@ export class DooTaskMcpServer {
     // 文件管理：获取文件详情
     this.mcp.addTool({
       name: 'get_file_detail',
-      description: '获取文件详情，包括类型、大小、正文内容、共享状态等。',
+      description: 'Get file details including type, size, content, and sharing status.',
       parameters: z.object({
         file_id: z.union([z.number(), z.string()])
-          .describe('文件ID 或分享码'),
+          .describe('File ID or share code'),
         with_content: z.boolean()
           .optional()
-          .describe('是否提取文本内容'),
+          .describe('Whether to extract text content from the file'),
         text_offset: z.number()
           .optional()
-          .describe('文本起始位置'),
+          .describe('Text start offset'),
         text_limit: z.number()
           .optional()
-          .describe('获取长度，默认50000，最大200000'),
+          .describe('Text length, default 50000, max 200000'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -1887,16 +1887,16 @@ export class DooTaskMcpServer {
     // 文件管理：通过路径获取文件内容
     this.mcp.addTool({
       name: 'fetch_file_content',
-      description: '通过文件路径获取文本内容。',
+      description: 'Fetch text content by file path.',
       parameters: z.object({
         path: z.string()
-          .describe('系统内文件路径或URL'),
+          .describe('Internal file path or URL'),
         offset: z.number()
           .optional()
-          .describe('起始位置'),
+          .describe('Start offset'),
         limit: z.number()
           .optional()
-          .describe('获取长度，默认50000，最大200000'),
+          .describe('Length, default 50000, max 200000'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -1928,32 +1928,32 @@ export class DooTaskMcpServer {
     // 工作报告：获取接收的汇报列表
     this.mcp.addTool({
       name: 'list_received_reports',
-      description: '获取我接收的工作汇报列表，支持按类型、状态、部门、时间筛选。',
+      description: 'List work reports received by current user. Supports filtering by type, status, department, and time.',
       parameters: z.object({
         search: z.string()
           .optional()
-          .describe('搜索关键词（可搜索标题、汇报人邮箱或用户ID）'),
+          .describe('Search keyword (title, reporter email, or user ID)'),
         type: z.enum(['weekly', 'daily', 'all'])
           .optional()
-          .describe('汇报类型: weekly(周报), daily(日报), all(全部)，默认all'),
+          .describe('Report type: weekly, daily, or all. Default: all'),
         status: z.enum(['read', 'unread', 'all'])
           .optional()
-          .describe('已读状态: read(已读), unread(未读), all(全部)，默认all'),
+          .describe('Read status: read, unread, or all. Default: all'),
         department_id: z.number()
           .optional()
-          .describe('部门ID，筛选指定部门的汇报'),
+          .describe('Department ID to filter by'),
         created_at_start: z.string()
           .optional()
-          .describe('开始时间，格式: YYYY-MM-DD'),
+          .describe('Start date, format: YYYY-MM-DD'),
         created_at_end: z.string()
           .optional()
-          .describe('结束时间，格式: YYYY-MM-DD'),
+          .describe('End date, format: YYYY-MM-DD'),
         page: z.number()
           .optional()
-          .describe('页码，默认1'),
+          .describe('Page number, default 1'),
         pagesize: z.number()
           .optional()
-          .describe('每页数量，默认20，最大50'),
+          .describe('Page size, default 20, max 50'),
       }),
       execute: async (params, context) => {
         const page = params.page && params.page > 0 ? params.page : 1;
@@ -2037,14 +2037,14 @@ export class DooTaskMcpServer {
     // 工作报告：获取汇报详情
     this.mcp.addTool({
       name: 'get_report_detail',
-      description: '获取工作汇报详情，包括内容、汇报人、接收人等。支持报告ID或分享码。',
+      description: 'Get work report details including content, reporter, and recipients. Supports report ID or share code.',
       parameters: z.object({
         report_id: z.number()
           .optional()
-          .describe('报告ID'),
+          .describe('Report ID'),
         share_code: z.string()
           .optional()
-          .describe('报告分享码'),
+          .describe('Report share code'),
       }),
       execute: async (params, context) => {
         if (!params.report_id && !params.share_code) {
@@ -2104,13 +2104,13 @@ export class DooTaskMcpServer {
     // 工作报告：生成汇报模板
     this.mcp.addTool({
       name: 'generate_report_template',
-      description: '基于任务完成情况自动生成工作汇报模板。',
+      description: 'Auto-generate a work report template based on task completion.',
       parameters: z.object({
         type: z.enum(['weekly', 'daily'])
-          .describe('汇报类型: weekly(周报), daily(日报)'),
+          .describe('Report type: weekly or daily'),
         offset: z.number()
           .optional()
-          .describe('时间偏移量，0表示当前周期，-1表示上一周期，-2表示上上周期，以此类推。默认0'),
+          .describe('Time offset (non-negative, negative values are normalized): 0 = current period, 1 = previous, 2 = two periods ago. Default: 0'),
       }),
       execute: async (params, context) => {
         const offset = params.offset !== undefined ? Math.abs(params.offset) : 0;
@@ -2151,23 +2151,23 @@ export class DooTaskMcpServer {
     // 工作报告：创建汇报
     this.mcp.addTool({
       name: 'create_report',
-      description: '创建并提交工作汇报。通常先使用 generate_report_template 生成模板，然后使用此工具提交。',
+      description: 'Create and submit a work report. Typically use generate_report_template first, then submit with this tool.',
       parameters: z.object({
         type: z.enum(['weekly', 'daily'])
-          .describe('汇报类型: weekly(周报), daily(日报)'),
+          .describe('Report type: weekly or daily'),
         title: z.string()
-          .describe('报告标题'),
+          .describe('Report title'),
         content: z.string()
-          .describe('报告内容（Markdown 格式），通常从 generate_report_template 返回的 content 字段获取'),
+          .describe('Report content (Markdown format), usually from generate_report_template'),
         receive: z.array(z.number())
           .optional()
-          .describe('接收人用户ID数组，不包含自己'),
+          .describe('Array of recipient user IDs, excluding self'),
         sign: z.string()
           .optional()
-          .describe('唯一签名，从 generate_report_template 返回的 sign 字段获取'),
+          .describe('Unique signature from generate_report_template'),
         offset: z.number()
           .optional()
-          .describe('时间偏移量，应与生成模板时保持一致。默认0'),
+          .describe('Time offset (non-negative, negative values are normalized), should match template generation. Default: 0'),
       }),
       execute: async (params, context) => {
         const requestData: Record<string, unknown> = {
@@ -2214,26 +2214,26 @@ export class DooTaskMcpServer {
     // 工作报告：获取我发送的汇报列表
     this.mcp.addTool({
       name: 'list_my_reports',
-      description: '获取我发送的工作汇报列表，支持按类型、时间筛选和搜索。适用于查看自己的历史汇报。',
+      description: 'List work reports sent by current user. Supports filtering by type, time, and search.',
       parameters: z.object({
         search: z.string()
           .optional()
-          .describe('搜索关键词（可搜索标题）'),
+          .describe('Search keyword (title)'),
         type: z.enum(['weekly', 'daily', 'all'])
           .optional()
-          .describe('汇报类型: weekly(周报), daily(日报), all(全部)，默认all'),
+          .describe('Report type: weekly, daily, or all. Default: all'),
         created_at_start: z.string()
           .optional()
-          .describe('开始时间，格式: YYYY-MM-DD'),
+          .describe('Start date, format: YYYY-MM-DD'),
         created_at_end: z.string()
           .optional()
-          .describe('结束时间，格式: YYYY-MM-DD'),
+          .describe('End date, format: YYYY-MM-DD'),
         page: z.number()
           .optional()
-          .describe('页码，默认1'),
+          .describe('Page number, default 1'),
         pagesize: z.number()
           .optional()
-          .describe('每页数量，默认20，最大50'),
+          .describe('Page size, default 20, max 50'),
       }),
       execute: async (params, context) => {
         const page = params.page && params.page > 0 ? params.page : 1;
@@ -2304,13 +2304,13 @@ export class DooTaskMcpServer {
     // 工作报告：标记已读/未读
     this.mcp.addTool({
       name: 'mark_reports_read',
-      description: '批量标记工作汇报为已读或未读状态。支持单个或多个报告的状态管理。',
+      description: 'Batch mark work reports as read or unread.',
       parameters: z.object({
         report_ids: z.union([z.number(), z.array(z.number())])
-          .describe('报告ID或ID数组，最多100个'),
+          .describe('Report ID or ID array, max 100'),
         action: z.enum(['read', 'unread'])
           .optional()
-          .describe('操作类型: read(标记已读), unread(标记未读)，默认read'),
+          .describe('Action: read or unread. Default: read'),
       }),
       execute: async (params, context) => {
         const action = params.action || 'read';
@@ -2347,20 +2347,20 @@ export class DooTaskMcpServer {
     // 智能搜索：统一搜索工具
     this.mcp.addTool({
       name: 'intelligent_search',
-      description: '统一搜索工具，可搜索任务、项目、文件、联系人、消息。支持语义搜索。',
+      description: 'Unified search across tasks, projects, files, contacts, and messages. Supports semantic search.',
       parameters: z.object({
         keyword: z.string()
           .min(1)
-          .describe('搜索关键词'),
+          .describe('Search keyword'),
         types: z.array(z.enum(['task', 'project', 'file', 'contact', 'message']))
           .optional()
-          .describe('搜索类型数组，可选值: task(任务), project(项目), file(文件), contact(联系人), message(消息)。不传则搜索全部类型'),
+          .describe('Search types: task, project, file, contact, message. Omit to search all'),
         search_type: z.enum(['text', 'vector', 'hybrid'])
           .optional()
-          .describe('搜索模式: text(文本匹配), vector(语义搜索), hybrid(混合搜索，默认)'),
+          .describe('Search mode: text, vector, or hybrid (default)'),
         take: z.number()
           .optional()
-          .describe('每种类型获取数量，默认10，最大50'),
+          .describe('Results per type, default 10, max 50'),
       }),
       execute: async (params, context) => {
         const keyword = params.keyword;
@@ -2531,14 +2531,14 @@ export class DooTaskMcpServer {
     // OCR: 图片文字提取
     this.mcp.addTool({
       name: 'extract_image_text',
-      description: '识别图片中的文字，支持中英文。可用于提取截图、文档扫描件中的文本。',
+      description: 'Extract text from images (OCR). Supports Chinese and English. Works with screenshots and scanned documents.',
       parameters: z.object({
         file_id: z.union([z.number(), z.string()])
           .optional()
-          .describe('文件ID 或分享码'),
+          .describe('File ID or share code. Required if image_url is not provided'),
         image_url: z.string()
           .optional()
-          .describe('图片URL，与 file_id 二选一'),
+          .describe('Image URL. Required if file_id is not provided'),
       }),
       execute: async (params, context) => {
         // 参数校验
