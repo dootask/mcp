@@ -1,4 +1,0 @@
-services:
-  mcp-service:
-    image: dootask/mcp:${PLUGIN_VERSION}
-    restart: always
