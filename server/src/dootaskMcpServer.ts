@@ -1580,6 +1580,10 @@ export class DooTaskMcpServer {
         text: z.string()
           .min(1)
           .describe('Message content, supports Markdown'),
+        nickname: z.string()
+          .max(20)
+          .optional()
+          .describe('Custom sender nickname (max 20 chars). Defaults to "AI 助手" when omitted or empty'),
         silence: z.boolean()
           .optional()
           .describe('Send silently without push notification'),
@@ -1590,6 +1594,10 @@ export class DooTaskMcpServer {
           text: params.text,
           text_type: 'md',
         };
+
+        if (params.nickname !== undefined) {
+          payload.nickname = params.nickname;
+        }
 
         if (params.silence !== undefined) {
           payload.silence = params.silence ? 'yes' : 'no';
