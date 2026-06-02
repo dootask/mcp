@@ -1,6 +1,6 @@
 ---
 name: release-plugin
-description: 用于发布 DooTask MCP 插件新版本的完整流程。当用户提到"发布"、"打 tag"、"出新版本"、"release"、"上架"、"推到 DooTask AppStore"、"打标签发版"、"升级版本号"等任何与本仓库版本发布相关的意图时，必须使用本技能 —— 即使用户只是说"准备发版"或"该发新版了"也要触发。本技能会引导完成更新 CHANGELOG、提交、打 tag、推送、监控 GitHub Action 直至发布成功，避免遗漏步骤导致发布失败。
+description: 发布 DooTask MCP 插件新版本：更新中英双语 CHANGELOG、确定版本号、打 tag 并推送、监控 GitHub Action 直至发布到 Docker Hub 和 DooTask AppStore 成功。用户要发版/打 tag/出新版本时使用。
 ---
 
 # 发布 DooTask MCP 插件
