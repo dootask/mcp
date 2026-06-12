@@ -5,8 +5,6 @@ import { loadConfig } from './config';
 import { createLogger } from './logger';
 import { DooTaskToolsClient } from './dootaskClient';
 import { DooTaskMcpServer } from './dootaskMcpServer';
-import { OcrService } from './ocrService';
-import { OperationWebSocket, createOperationTools } from './operation';
 
 const DEFAULT_GUIDE_FILE = 'index.html';
 
@@ -78,7 +76,6 @@ async function bootstrap(): Promise<void> {
 
   const client = new DooTaskToolsClient(config.baseUrl, config.requestTimeout, logger);
   const mcpServer = new DooTaskMcpServer(client, logger);
-  const ocrService = new OcrService(logger);
 
   const guideServer = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
@@ -88,20 +85,6 @@ async function bootstrap(): Promise<void> {
     if (pathname === '/healthz' || pathname === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
-      return;
-    }
-
-    // OCR API 端点
-    if (pathname === '/ocr') {
-      try {
-        await ocrService.handleRequest(req, res);
-      } catch (err) {
-        logger.error({ err }, 'Unexpected OCR handler error');
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-        }
-        res.end(JSON.stringify({ error: 'Internal server error' }));
-      }
       return;
     }
 
@@ -127,28 +110,14 @@ async function bootstrap(): Promise<void> {
   await mcpServer.start(config.port);
   logger.info(`MCP server is listening on http://0.0.0.0:${config.port}/mcp`);
 
-  // 创建前端操作 WebSocket 服务
-  const operationWs = new OperationWebSocket({
-    server: guideServer,
-    path: '/mcp/operation',
-    logger,
-    baseUrl: config.baseUrl,
-  });
-
-  // 注册前端操作工具到 MCP Server
-  const operationTools = createOperationTools(operationWs.connectionManager, logger);
-  mcpServer.registerOperationTools(operationTools);
-
   guideServer.listen(config.healthPort, '0.0.0.0', () => {
     logger.info(`Guide server ready at http://0.0.0.0:${config.healthPort}/`);
-    logger.info(`Operation WebSocket ready at ws://0.0.0.0:${config.healthPort}/mcp/operation`);
   });
 
   const shutdown = async (signal: NodeJS.Signals) => {
     logger.info({ signal }, 'Received shutdown signal');
     try {
       guideServer.close();
-      await ocrService.terminate();
       await mcpServer.stop();
       logger.info('Servers stopped gracefully');
     } catch (error) {

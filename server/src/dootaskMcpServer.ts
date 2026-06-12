@@ -7,13 +7,8 @@ import type { IncomingMessage } from 'node:http';
 import { DooTaskToolsClient, RequestResult } from './dootaskClient';
 import TurndownService from 'turndown';
 import { marked } from 'marked';
-import axios from 'axios';
-import { OCR_SUPPORTED_FORMATS } from './ocrService';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-
-// 内部 OCR API 地址
-const OCR_API_URL = process.env.OCR_API_URL || 'http://localhost:7001/ocr';
 
 export class DooTaskMcpServer {
   readonly mcp: FastMCP;
@@ -56,26 +51,6 @@ export class DooTaskMcpServer {
   async stop(): Promise<void> {
     if (this.mcp && typeof this.mcp.stop === 'function') {
       await this.mcp.stop();
-    }
-  }
-
-  /**
-   * 注册前端操作工具
-   */
-  registerOperationTools(tools: Record<string, {
-    name: string;
-    description: string;
-    parameters: any;
-    execute: (params: any) => Promise<any>;
-  }>): void {
-    for (const tool of Object.values(tools)) {
-      this.mcp.addTool({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-        execute: tool.execute,
-      });
-      this.logger.info({ toolName: tool.name }, 'Registered operation tool');
     }
   }
 
@@ -437,40 +412,6 @@ export class DooTaskMcpServer {
       // 返回原始 markdown 作为降级方案
       return markdown.replace(/\n/g, '<br>');
     }
-  }
-
-  /**
-   * 获取 DooTask 文件的下载 URL
-   */
-  private async getFileContentUrl(
-    fileId: number | string,
-    context: any,
-  ): Promise<string> {
-    const fileResult = await this.request('GET', 'file/one', {
-      id: fileId,
-      with_url: 'yes',
-    }, context);
-
-    if (fileResult.error) {
-      throw new Error(`获取文件失败: ${fileResult.error}`);
-    }
-
-    const file = fileResult.data as any;
-    if (!file) {
-      throw new Error('文件不存在');
-    }
-
-    const ext = (file.ext || '').toLowerCase().replace(/^\./, '');
-    if (!OCR_SUPPORTED_FORMATS.includes(ext)) {
-      throw new Error(`不支持的图片格式: ${ext}，支持格式: ${OCR_SUPPORTED_FORMATS.join(', ')}`);
-    }
-
-    const contentUrl = file.content_url || file.path;
-    if (!contentUrl) {
-      throw new Error('无法获取文件下载地址');
-    }
-
-    return contentUrl;
   }
 
   private setupTools(): void {
@@ -2533,72 +2474,6 @@ export class DooTaskMcpServer {
             }, null, 2),
           }],
         };
-      },
-    });
-
-    // OCR: 图片文字提取
-    this.mcp.addTool({
-      name: 'extract_image_text',
-      description: 'Extract text from images (OCR). Supports Chinese and English. Works with screenshots and scanned documents.',
-      parameters: z.object({
-        file_id: z.union([z.number(), z.string()])
-          .optional()
-          .describe('File ID or share code. Takes precedence over image_url if both provided. Required if image_url is not provided'),
-        image_url: z.string()
-          .optional()
-          .describe('Image URL. Ignored if file_id is provided. Required if file_id is not provided'),
-      }),
-      execute: async (params, context) => {
-        // 参数校验
-        if (params.file_id === undefined && !params.image_url) {
-          throw new Error('请提供 file_id 或 image_url 参数');
-        }
-
-        try {
-          // 确定图片 URL
-          let imageUrl = params.image_url;
-
-          if (params.file_id !== undefined) {
-            // 从 DooTask 获取文件下载 URL
-            imageUrl = await this.getFileContentUrl(params.file_id, context);
-          }
-
-          this.logger.info({ file_id: params.file_id, image_url: imageUrl }, 'Calling OCR API');
-
-          // 调用内部 OCR API
-          const response = await axios.post(OCR_API_URL, {
-            image_url: imageUrl,
-          }, {
-            timeout: 120000, // 2 分钟超时
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          const result = response.data;
-
-          this.logger.info({
-            textLength: result.text?.length || 0,
-            confidence: result.confidence,
-            languages: result.languages,
-          }, 'OCR completed via API');
-
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error: any) {
-          this.logger.error({ err: error, file_id: params.file_id, image_url: params.image_url }, 'OCR failed');
-
-          // 处理 axios 错误响应
-          if (error.response?.data?.error) {
-            throw new Error(`OCR 识别失败: ${error.response.data.error}`);
-          }
-
-          throw new Error(`OCR 识别失败: ${error.message}`);
-        }
       },
     });
   }
